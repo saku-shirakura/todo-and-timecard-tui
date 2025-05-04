@@ -1,3 +1,7 @@
 <component name="CopyrightManager">
-  <settings default="SakuShirakura MIT" />
+  <settings default="saku-shirakura MIT">
+    <module2copyright>
+      <element module="All" copyright="saku-shirakura MIT" />
+    </module2copyright>
+  </settings>
 </component>

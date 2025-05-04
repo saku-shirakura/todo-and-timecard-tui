@@ -31,11 +31,21 @@
 
 #ifndef TODOLISTPAGE_H
 #define TODOLISTPAGE_H
+#include <string>
+#include <vector>
+
+#include "PageBase.h"
 
 namespace pages {
-    class TodoListPageData {};
+    class TodoListPage final : PageBase {
+    public:
+        void show();
 
-    int todoListPage();
-}// pages
+    private:
+        int _current_task_filter_selected{0};
+
+        static const std::vector<std::string> TASK_FILTER_MODE;
+    };
+} // pages
 
 #endif //TODOLISTPAGE_H

@@ -12,12 +12,21 @@ FetchContent_MakeAvailable(ftxui)
 
 set(CMAKE_CXX_STANDARD 20)
 
+add_subdirectory(lib/sqlite3)
+
 add_executable(todo_and_timecard_tui src/main.cpp
         src/core/TodoAndTimeCardApp.cpp
         src/core/TodoAndTimeCardApp.h
         src/page/TodoListPage.cpp
         src/page/TodoListPage.h
+        src/core/DBManager.cpp
+        src/core/DBManager.h
+        src/page/PageBase.cpp
+        src/page/PageBase.h
+        src/utilities/Utilities.cpp
+        src/utilities/Utilities.h
+        src/resource.h
 )
 
-target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component)
+target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component sqlite3)
 target_include_directories(todo_and_timecard_tui PRIVATE ${ftxui_SOURCE_DIR}/include)

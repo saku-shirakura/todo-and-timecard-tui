@@ -31,25 +31,28 @@
 
 #include "TodoListPage.h"
 
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 
-int pages::todoListPage() {
-    auto screen = ftxui::ScreenInteractive::TerminalOutput();
+namespace pages {
+    void TodoListPage::show()
+    {
+        ftxui::Component task_filter_toggle = ftxui::Toggle(&TASK_FILTER_MODE, &_current_task_filter_selected);
+        const ftxui::Component task_filter_container = ftxui::Container::Vertical({task_filter_toggle});
 
-    const std::vector<std::string> TASK_FILTER_MODE{"All", "In progress", "Incompleted", "Completed", "Not planned"};
-    int current_task_filter_selected = 0;
-    ftxui::Component task_filter_toggle = ftxui::Toggle(&TASK_FILTER_MODE, &current_task_filter_selected);
+        this->_renderer = Renderer(task_filter_container, [&] {
+            return hbox(
+                vbox(
+                    task_filter_toggle->Render(),
+                    ftxui::separator()
+                ) | ftxui::border
+            );
+        });
 
-    const ftxui::Component task_filter_container = ftxui::Container::Vertical({task_filter_toggle});
+        _render();
+    }
 
-    const auto task_filter_renderer = Renderer(task_filter_container, [&] {
-        return vbox(
-            hbox(
-                task_filter_toggle->Render() | ftxui::border,
-                ftxui::text("") | ftxui::flex
-            )
-        );
-    });
-
-    screen.Loop(task_filter_renderer);
-    return 0;
-}
+    const std::vector<std::string> TodoListPage::TASK_FILTER_MODE{
+        "All", "In progress", "Incompleted", "Completed", "Not planned"
+    };
+} // pages

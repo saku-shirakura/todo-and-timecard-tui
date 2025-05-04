@@ -1,0 +1,73 @@
+DROP TRIGGER IF EXISTS trigger_task_updated_at;
+DROP TRIGGER IF EXISTS trigger_worktime_updated_at;
+DROP TRIGGER IF EXISTS trigger_schedule_updated_at;
+
+DROP TABLE IF EXISTS status;
+DROP TABLE IF EXISTS task;
+DROP TABLE IF EXISTS worktime;
+DROP TABLE IF EXISTS schedule;
+
+CREATE TABLE status
+(
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE task
+(
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id  INTEGER REFERENCES task (id) ON DELETE CASCADE,
+    name       TEXT                                              NOT NULL,
+    detail     TEXT,
+    status_id  INTEGER REFERENCES status (id) ON DELETE RESTRICT NOT NULL,
+    created_at TEXT                                              NOT NULL DEFAULT (DATETIME('now', 'localtime')),
+    updated_at TEXT                                              NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+);
+
+CREATE TRIGGER trigger_task_updated_at
+    AFTER UPDATE
+    ON task
+BEGIN
+    UPDATE task SET updated_at = DATETIME('now', 'localtime') WHERE rowid == NEW.rowid;
+END;
+
+CREATE TABLE worktime
+(
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL,
+    memo           TEXT,
+    starting_time  TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
+    finishing_time TEXT,
+    created_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
+    updated_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+);
+
+CREATE TRIGGER trigger_worktime_updated_at
+    AFTER UPDATE
+    ON worktime
+BEGIN
+    UPDATE worktime SET updated_at = DATETIME('now', 'localtime') WHERE rowid == NEW.rowid;
+END;
+
+CREATE TABLE schedule
+(
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL,
+    starting_time  TEXT    NOT NULL,
+    finishing_time TEXT    NOT NULL,
+    created_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
+    updated_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+);
+
+CREATE TRIGGER trigger_schedule_updated_at
+    AFTER UPDATE
+    ON schedule
+BEGIN
+    UPDATE schedule SET updated_at = DATETIME('now', 'localtime') WHERE rowid == NEW.rowid;
+end;
+
+INSERT INTO status(label)
+VALUES ('Progress'),
+       ('Complete'),
+       ('Incomplete'),
+       ('Not planned');

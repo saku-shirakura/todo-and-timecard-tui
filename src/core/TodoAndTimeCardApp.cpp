@@ -21,10 +21,11 @@
 // SOFTWARE.
 
 #include "TodoAndTimeCardApp.h"
-#include "../page/TodoListPage.h"
 
-int TodoAndTimeCardApp::execute() {
-    pages::todoListPage();
-
-    return 0;
-}
+namespace core {
+    void TodoAndTimeCardApp::execute()
+    {
+        pages::TodoListPage todo{};
+        todo.show();
+    }
+} // core

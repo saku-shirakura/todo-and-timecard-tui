@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) saku shirakura <saku@sakushira.com>
+// Copyright (c) 2025 Saku Shirakura <saku@sakushira.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,25 +21,34 @@
 // SOFTWARE.
 
 /**
-* @file TodoAndTimeCardApp.h
-* @date 25/04/30
-* @brief 簡単な説明(不要なら削除すること。)
-* @details 詳細(不要なら削除すること。)
-* @author saku shirakura (saku@sakushira.com)
-* @since 
-*/
+ * @file PageBase.h
+ * @date 25/05/02
+ * @brief ファイルの説明
+ * @details ファイルの詳細
+ * @author saku shirakura (saku@sakushira.com)
+ */
 
-#ifndef TODOANDTIMECARDAPP_H
-#define TODOANDTIMECARDAPP_H
-#include "../page/TodoListPage.h"
 
-namespace core {
-    class TodoAndTimeCardApp {
+#ifndef PAGEBASE_H
+#define PAGEBASE_H
+#include <ftxui/component/loop.hpp>
+#include <ftxui/component/screen_interactive.hpp>
+
+
+namespace pages {
+    /**
+     * @brief ここにクラスの説明
+     * @details ここにクラスの詳細な説明
+     * @since
+     */
+    class PageBase {
     public:
-        TodoAndTimeCardApp() = default;
+        virtual ~PageBase() = default;
 
-        void execute();
+    protected:
+        virtual void _render();
+        ftxui::Component _renderer;
     };
-} // core
+} // pages
 
-#endif //TODOANDTIMECARDAPP_H
+#endif //PAGEBASE_H
