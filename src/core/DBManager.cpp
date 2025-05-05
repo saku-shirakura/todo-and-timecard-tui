@@ -25,8 +25,9 @@
 #include <complex.h>
 #include <format>
 #include <fstream>
-#include <iostream>
+#include <iosfwd>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -35,14 +36,35 @@
 #include "../utilities/Utilities.h"
 
 namespace core::db {
+    double getDouble(const ColValue& value_, const double default_value_)
+    {
+        if (value_.first == ColType::T_REAL) return std::get<double>(value_.second);
+        return default_value_;
+    }
+
+    long long getLongLong(const ColValue& value_, const long long default_value_)
+    {
+        if (value_.first == ColType::T_INTEGER) return std::get<long long>(value_.second);
+        return default_value_;
+    }
+
+    std::string getString(const ColValue& value_, const std::string& default_value_)
+    {
+        if (value_.first == ColType::T_TEXT) return std::get<std::string>(value_.second);
+        return default_value_;
+    }
+
     DBManager::~DBManager()
     {
         if (_db != nullptr)
-            sqlite3_close(_db);
-        _db = nullptr;
+            sqlite3_close_v2(_db);
     }
 
-    void DBManager::setDBFile(std::string file_path_) { _db_file_path = std::move(file_path_); }
+    void DBManager::setDBFile(std::string file_path_)
+    {
+        _db_file_path = std::move(file_path_);
+        _manager->_closeDB();
+    }
 
     int DBManager::openDB()
     {
@@ -89,12 +111,23 @@ namespace core::db {
         if (const int open_db_err = openDB(); open_db_err != 0) { return open_db_err; }
         sqlite3_stmt* stmt;
         // sqlを準備する。
-        if (const int prepare_err = sqlite3_prepare_v2(_manager->_db, sql_.c_str(), sql_.size(), &stmt, nullptr);
+        if (const int prepare_err = sqlite3_prepare_v2(_manager->_db, sql_.c_str(), static_cast<int>(sql_.size()),
+                                                       &stmt, nullptr);
             prepare_err != SQLITE_OK) { return getPrefixedErrorCode(prepare_err, ErrorPrefix::PREPARE_SQL_ERROR); }
         // placeholderと値を紐づける。
         if (const int binder_err = binder_(binder_arg_, stmt); binder_err != SQLITE_OK) { return binder_err; }
         // sqlを実行
         int step_status = sqlite3_step(stmt);
+        // エラーが発生しておらず、select文であれば、データをクリアする。
+        if (sqlite3_stmt_readonly(stmt) && (step_status == SQLITE_ROW || step_status == SQLITE_DONE)) {
+            result_table_.clear();
+        }
+        if (step_status != SQLITE_ROW) {
+            if (const int finalize_err = sqlite3_finalize(stmt); finalize_err != SQLITE_OK) {
+                return getPrefixedErrorCode(finalize_err, ErrorPrefix::FINALIZE_STMT_ERROR);
+            }
+            return SQLITE_OK;
+        }
         // 取得した行をTableに格納する。
         while (step_status == SQLITE_ROW) {
             const int col_count = sqlite3_column_count(stmt);
@@ -135,25 +168,31 @@ namespace core::db {
             // sqlを実行
             step_status = sqlite3_step(stmt);
         }
-        if (step_status != SQLITE_DONE) { return getPrefixedErrorCode(step_status, ErrorPrefix::STEP_ERROR); }
         if (const int finalize_err = sqlite3_finalize(stmt); finalize_err != SQLITE_OK) {
             return getPrefixedErrorCode(finalize_err, ErrorPrefix::FINALIZE_STMT_ERROR);
         }
         return SQLITE_OK;
     }
 
-    int DBManager::getErrorCode(const int error_code_) { return error_code_ % 100000; }
+    constexpr int prefix_base = 100000;
+
+    int DBManager::getErrorCode(const int error_code_) { return error_code_ % prefix_base; }
 
     DBManager::ErrorPrefix DBManager::getErrorPos(const int error_code_)
     {
-        int err_pref = std::abs(error_code_) / 100000;
-        if (err_pref > 6 || err_pref < 0) err_pref = 0;
+        int err_pref = std::abs(error_code_) / prefix_base;
+        if (!_isValidErrorPos(err_pref)) err_pref = 0;
         return static_cast<ErrorPrefix>(err_pref);
     }
 
     int DBManager::getPrefixedErrorCode(const int error_code_, ErrorPrefix prefix_)
     {
-        return error_code_ + static_cast<int>(prefix_) * 100000;
+        return error_code_ + static_cast<int>(prefix_) * prefix_base;
+    }
+
+    bool DBManager::_isValidErrorPos(const int error_pref_)
+    {
+        return error_pref_ < static_cast<int>(ErrorPrefix::LAST_ENUM) && error_pref_ >= 0;
     }
 
     int DBManager::_openDB(const std::string& db_file_)
@@ -169,6 +208,17 @@ namespace core::db {
             if (execute_err != SQLITE_OK) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
         }
         return SQLITE_OK;
+    }
+
+    int DBManager::_closeDB()
+    {
+        int ret_val{0};
+        if (_db != nullptr)
+            ret_val = sqlite3_close_v2(_db);
+        _db = nullptr;
+        if (ret_val != SQLITE_OK)
+            ret_val = getPrefixedErrorCode(ret_val, ErrorPrefix::CLOSE_ERROR);
+        return ret_val;
     }
 
     int DBManager::_initializeDB() const
@@ -189,9 +239,16 @@ namespace core::db {
     {
     }
 
+    int DatabaseTable::execute(const std::string& sql_, std::vector<ColValue> placeholder_value_)
+    {
+        if (const int err = DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_); err !=
+            SQLITE_OK) { return err; }
+        return SQLITE_OK;
+    }
+
     int DatabaseTable::selectRecords() { return selectRecords("", {}); }
 
-    int DatabaseTable::selectRecords(const std::string& where_condition_, std::vector<ColValue> placeholder_value_)
+    int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_)
     {
         std::string columns;
         for (const std::string& col : _column_names) {
@@ -200,80 +257,206 @@ namespace core::db {
             columns += col;
         }
         std::string sql;
-        if (where_condition_.empty())
+        if (where_clause_.empty())
             sql = std::format("SELECT {} FROM {};", columns, _table_name);
-        else sql = std::format("SELECT {} FROM {} WHERE {};", columns, _table_name, where_condition_);
-        _data.clear();
-        if (const int err = DBManager::usePlaceholderUniSql(sql, _data, _binder, &placeholder_value_); err !=
-            SQLITE_OK) { return err; }
-        return SQLITE_OK;
+        else sql = std::format("SELECT {} FROM {} WHERE {};", columns, _table_name, where_clause_);
+        const int ret_val = execute(sql, placeholder_value_);
+        _mapper();
+        return ret_val;
     }
 
-    const Table& DatabaseTable::getTable() { return _data; }
+    const Table& DatabaseTable::getRawTable() { return _data; }
+
+    const std::vector<std::string>& DatabaseTable::getColumnNames()
+    {
+        return _column_names;}
+
+    const std::string& DatabaseTable::getTableName()
+    {
+        return _table_name;
+    }
 
     int DatabaseTable::_binder(void* bind_arg_, sqlite3_stmt* stmt)
     {
         const auto bind_values = static_cast<std::vector<ColValue>*>(bind_arg_);
         int binder_err = 0;
         for (int i = 0; i < bind_values->size(); i++) {
+            const int placeholder_i = i + 1;
             switch (auto [column_type, value] = bind_values->at(i); column_type) {
             case ColType::T_REAL:
-                binder_err = sqlite3_bind_double(stmt, i, std::get<double>(value));
+                binder_err = sqlite3_bind_double(stmt, placeholder_i, std::get<double>(value));
                 break;
             case ColType::T_INTEGER:
-                binder_err = sqlite3_bind_int64(stmt, i, std::get<long long>(value));
+                binder_err = sqlite3_bind_int64(stmt, placeholder_i, std::get<long long>(value));
                 break;
             case ColType::T_TEXT:
-                binder_err = sqlite3_bind_text(stmt, i, std::get<std::string>(value).c_str(), -1, SQLITE_STATIC);
+                binder_err = sqlite3_bind_text(stmt, placeholder_i, std::get<std::string>(value).c_str(), -1,
+                                               SQLITE_TRANSIENT);
                 break;
             case ColType::T_NULL:
-                binder_err = sqlite3_bind_null(stmt, i);
+                binder_err = sqlite3_bind_null(stmt, placeholder_i);
                 break;
             }
             if (binder_err != SQLITE_OK) {
                 return DBManager::getPrefixedErrorCode(binder_err, DBManager::ErrorPrefix::BIND_ERROR);
             }
         }
-        return 0;
+        return SQLITE_OK;
+    }
+
+    void DatabaseTable::_mapper()
+    {
+    }
+
+    Status::Status(const long long id_, std::string label_): id(id_), label(std::move(label_))
+    {
+    }
+
+    StatusTable::StatusTable(): DatabaseTable({"id", "label"}, "status")
+    {
+    }
+
+    const std::unordered_map<long long, Status>& StatusTable::getTable() { return _table; }
+
+    void StatusTable::_mapper()
+    {
+        _table.clear();
+        for (auto i : _data) {
+            _table.try_emplace(getLongLong(i.at("id")),
+                               Status({getLongLong(i.at("id")), getString(i.at("label"))}));
+        }
+    }
+
+
+    Task::Task(const long long id_, const long long parent_id_, std::string name_, std::string detail_,
+               const long long status_id_, std::string created_at_,
+               std::string updated_at_): id(id_), parent_id(parent_id_), name(std::move(name_)),
+                                         detail(std::move(detail_)), status_id(status_id_),
+                                         created_at(std::move(created_at_)), updated_at(std::move(updated_at_))
+    {
+    }
+
+    TaskTable::TaskTable(): DatabaseTable({
+                                              "id",
+                                              "parent_id",
+                                              "name",
+                                              "detail",
+                                              "status_id",
+                                              "created_at",
+                                              "updated_at"
+                                          },
+                                          "task")
+    {
+    }
+
+    const std::unordered_map<long long, Task>& TaskTable::getTable()
+    {return _table;}
+
+    void TaskTable::_mapper() {
+        _table.clear();
+        for (auto i : _data) {
+            _table.try_emplace(
+                getLongLong(i.at("id")),
+                Task({
+                    getLongLong(i.at("id")),
+                    getLongLong(i.at("parent_id")),
+                    getString(i.at("name")),
+                    getString(i.at("detail")),
+                    getLongLong(i.at("status_id")),
+                    getString(i.at("created_at")),
+                    getString(i.at("updated_at"))
+                }));
+        }
+    }
+
+    Worktime::Worktime(const long long id_, const long long task_id_, std::string memo_, std::string starting_time_,
+                       std::string finishing_time_, std::string created_at_,
+                       std::string updated_at_): id(id_), task_id(task_id_), memo(std::move(memo_)),
+                                                 starting_time(std::move(starting_time_)),
+                                                 finishing_time(std::move(finishing_time_)),
+                                                 created_at(std::move(created_at_)), updated_at(std::move(updated_at_))
+    {
+    }
+
+    Schedule::Schedule(const long long id_, const long long task_id_, std::string starting_time_,
+                       std::string finishing_time_, std::string created_at_, std::string updated_at_):
+        id(id_),
+        task_id(task_id_),
+        starting_time(std::move(starting_time_)),
+        finishing_time(std::move(finishing_time_)),
+        created_at(std::move(created_at_)),
+        updated_at(std::move(updated_at_))
+    {
+    }
+
+    ScheduleTable::ScheduleTable(): DatabaseTable({
+            "id",
+            "task_id",
+            "starting_time",
+            "finishing_time",
+            "created_at",
+            "updated_at"
+        },
+        "schedule")
+    {
+    }
+
+    const std::unordered_map<long long, Schedule>& ScheduleTable::getTable()
+    {
+        return _table;
+    }
+
+    void ScheduleTable::_mapper() {
+        _table.clear();
+        for (auto i : _data) {
+            _table.try_emplace(
+                getLongLong(i.at("id")),
+                Schedule({
+                    getLongLong(i.at("id")),
+                    getLongLong(i.at("task_id")),
+                    getString(i.at("starting_time")),
+                    getString(i.at("finishing_time")),
+                    getString(i.at("created_at")),
+                    getString(i.at("updated_at"))
+                })
+            );
+        }
+    }
+
+
+    WorktimeTable::WorktimeTable(): DatabaseTable({
+                                                      "id",
+                                                      "task_id",
+                                                      "memo",
+                                                      "starting_time",
+                                                      "finishing_time",
+                                                      "created_at",
+                                                      "updated_at"
+                                                  },
+                                                  "worktime")
+    {
+    }
+
+    const std::unordered_map<long long, Worktime>& WorktimeTable::getTable()
+    {return _table;}
+
+    void WorktimeTable::_mapper() {
+        _table.clear();
+        for (auto i : _data) {
+            _table.try_emplace(
+                getLongLong(i.at("id")),
+                Worktime({
+                    getLongLong(i.at("id")),
+                    getLongLong(i.at("task_id")),
+                    getString(i.at("memo")),
+                    getString(i.at("starting_time")),
+                    getString(i.at("finishing_time")),
+                    getString(i.at("created_at")),
+                    getString(i.at("updated_at"))
+                }));
+        }
     }
 
     std::unique_ptr<DBManager> DBManager::_manager{nullptr};
     std::filesystem::path DBManager::_db_file_path{util::getDataPath("db.sqlite")};
-
-    DatabaseTable Tables::Status{{"id", "label"}, "status"};
-    DatabaseTable Tables::Task{
-        {
-            "id"
-            "parent_id",
-            "name",
-            "detail",
-            "status_id",
-            "created_at",
-            "updated_at"
-        },
-        "task"
-    };
-    DatabaseTable Tables::Worktime{
-        {
-            "id",
-            "task_id",
-            "memo",
-            "starting_time",
-            "finishing_time",
-            "created_at",
-            "updated_at"
-        },
-        "worktime"
-    };
-    DatabaseTable Tables::Schedule{
-        {
-            "id",
-            "task_id",
-            "starting_time",
-            "finishing_time",
-            "created_at",
-            "updated_at"
-        },
-        "schedule"
-    };
 } // core

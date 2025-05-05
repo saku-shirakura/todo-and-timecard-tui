@@ -53,6 +53,31 @@ namespace core::db {
     using RowHash = std::unordered_map<std::string, ColValue>;
 
     using Table = std::vector<RowHash>;
+
+    /**
+     * @brief ColValueから適切な形式で値を取得します。
+     * @param value_ 値が格納されているColValue
+     * @param default_value_ 保有している値が関数の引数と異なる場合に使用されます。
+     * @return 取得した値又はdefault_value_
+     */
+    double getDouble(const ColValue& value_, double default_value_ = 0.0);
+
+    /**
+     * @brief getDouble()を参照してください。
+     * @param value_
+     * @param default_value_
+     * @return
+     */
+    long long getLongLong(const ColValue& value_, long long default_value_ = 0);
+
+    /**
+     * @brief getDouble()を参照してください。
+     * @param value_
+     * @param default_value_
+     * @return
+     */
+    std::string getString(const ColValue& value_, const std::string& default_value_ = "");
+
     /**
      * @brief データベース接続を管理し、SQL文を実行します。
      */
@@ -63,7 +88,7 @@ namespace core::db {
         ~DBManager();
 
         /**
-         * @brief デフォルトのデータベースファイルのパスを変更します。
+         * @brief デフォルトのデータベースファイルのパスを変更します。この際、接続は閉じられます。
          * @param file_path_ 接続対象データベースのパス
          */
         static void setDBFile(std::string file_path_);
@@ -91,6 +116,8 @@ namespace core::db {
 
         /**
          * @brief 単一のsql文を実行します。その際、binder_コールバックによりプレースホルダを利用できます。
+         * @warning この関数では、create, select, insert, update, delete以外の文を実行しないでください。
+         * @warning それらを実行したい場合は、execute()を用いてください。その場合、placeholderは使えません。
          * @param sql_ 単一のsql文
          * @param result_table_ 値を格納する対象のテーブル。emplace_backにより要素が追加されます。
          * @param binder_ placeholderをバインドするためのコールバック (prepareの実行直後に呼び出されます。)
@@ -102,6 +129,7 @@ namespace core::db {
                                         int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_);
 
         /**
+         * @details FIRST_ENUM 先頭の値 - 1
          * @details INVALID_PREFIX プリフィックスは付与されていないか無効です。
          * @details OPEN_DB_ERROR データベース接続時のエラー
          * @details INITIALIZE_DB_ERROR データベース初期化時のエラー
@@ -109,18 +137,23 @@ namespace core::db {
          * @details PREPARE_SQL_ERROR sqlite3_prepare_v2のエラー
          * @details STEP_ERROR sqlite3_stepのエラー
          * @details FINALIZE_STMT_ERROR sqlite3_finalizeのエラー
+         * @details BIND_ERROR sqlite3_bind_XXXのエラー
+         * @details MAPPER_ERROR マッピングに失敗
+         * @details LAST_ENUM ErrorPrefixの数を求めるためのenum
          */
         enum class ErrorPrefix {
             INVALID_PREFIX = 0,
-            OPEN_DB_ERROR = 1,
-            INITIALIZE_DB_ERROR = 2,
-            EXECUTE_ERROR = 3,
-            PREPARE_SQL_ERROR = 4,
-            STEP_ERROR = 5,
-            FINALIZE_STMT_ERROR = 6,
-            BIND_ERROR = 7
+            OPEN_DB_ERROR,
+            INITIALIZE_DB_ERROR,
+            EXECUTE_ERROR,
+            PREPARE_SQL_ERROR,
+            STEP_ERROR,
+            FINALIZE_STMT_ERROR,
+            BIND_ERROR,
+            MAPPER_ERROR,
+            CLOSE_ERROR,
+            LAST_ENUM
         };
-
 
         /**
          * @brief 実際のエラーコードを取得します。
@@ -148,11 +181,24 @@ namespace core::db {
 
     private:
         /**
+         * @brief error_pref_がErrorPrefixの範囲内か確認します。
+         * @param error_pref_ 判定対象
+         * @return 判定結果
+         */
+        static bool _isValidErrorPos(int error_pref_);
+
+        /**
          * @brief データベース`db_file_`を開きます。
          * @param db_file_ 接続したいデータベースファイル
          * @return _getPrefixedErrorCode()に従ったエラーを返します。
          */
         int _openDB(const std::string& db_file_);
+
+        /**
+         * @brief データベース接続を閉じます。
+         * @return _getPrefixedErrorCode()に従ったエラーを返します。
+         */
+        int _closeDB();
 
         /**
          * @brief DBを初期化します。
@@ -170,38 +216,72 @@ namespace core::db {
 
     class DatabaseTable {
     public:
-        DatabaseTable() = default;
-        ~DatabaseTable() = default;
+        DatabaseTable() = delete;
+        virtual ~DatabaseTable() = default;
 
+        /**
+         * @brief 操作対象の列名とテーブル名を指定するコンストラクタ。(executeでは使用されません。)
+         * @param column_names_ 操作対象列名のリスト
+         * @param table_name_ 操作対象テーブルの名称
+         */
         DatabaseTable(std::vector<std::string> column_names_,
                       std::string table_name_);
 
+        /**
+         * @brief 単一のSQL文を実行します。複数のsql文が渡された場合、先頭以外は無視されます。
+         * @param sql_ 実行したいsql文 (1文のみ)
+         * @param placeholder_value_ プレースホルダの値
+         * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
+         */
+        int execute(const std::string& sql_, std::vector<ColValue> placeholder_value_);
+
+        /**
+         * @brief 全てのレコードを取得します。
+         * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
+         */
         int selectRecords();
 
         /**
-         *
-         * @param where_condition_
-         * @param placeholder_value_
-         * @return
+         * @brief 1つのselect文を実行し、メンバ変数_dataを更新する(結果はgetTable()によって取得できる)。その際、placeholderを使用する。
+         * @param where_clause_ WHERE句の後の条件文
+         * @param placeholder_value_ 条件文のplaceholder(?)に埋め込む値
+         * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
-        int selectRecords(const std::string& where_condition_,
-                          std::vector<ColValue> placeholder_value_);
+        int selectRecords(const std::string& where_clause_,
+                          const std::vector<ColValue>& placeholder_value_);
 
         /**
-         *
-         * @return
+         * @brief 生のテーブルを取得します。
+         * @return 直前に取得されたテーブル。
          */
-        const Table& getTable();
+        const Table& getRawTable();
+
+        /**
+         * @brief 列名を取得します。
+         * @return 列名
+         */
+        const std::vector<std::string>& getColumnNames();
+
+        /**
+         * @brief テーブル名を取得します。
+         * @return テーブル名
+         */
+        const std::string& getTableName();
 
     protected:
-
         /**
-         *
-         * @param bind_arg_
-         * @param stmt
-         * @return
+         * @brief sqlite3_stmtに値をbindする。userPlaceholderUniSql()関数のbinder_コールバックとして使用します。
+         * @param bind_arg_ `std::vector<ColValue>*` placeholderと対応したbind対象の変数のリスト
+         * @param stmt bind対象のsqlite3_stmt
+         * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
         static int _binder(void* bind_arg_, sqlite3_stmt* stmt);
+
+        /**
+         * @details 派生クラスでのメンバ変数へのマッピング用途に使用できます。
+         * @details この関数は、selectRecordsの後に取得成功の有無にかかわらず呼び出されます。
+         */
+        virtual void _mapper();
 
         std::vector<std::string> _column_names;
 
@@ -210,12 +290,130 @@ namespace core::db {
         Table _data;
     };
 
-    class Tables {
+    class Status {
     public:
-        static DatabaseTable Status;
-        static DatabaseTable Task;
-        static DatabaseTable Worktime;
-        static DatabaseTable Schedule;
+        const long long id;
+        const std::string label;
+
+        friend class StatusTable;
+
+    private:
+        Status(long long id_, std::string label_);
+    };
+
+    class StatusTable final : public DatabaseTable {
+    public:
+        StatusTable();
+
+        const std::unordered_map<long long, Status>& getTable();
+
+    private:
+        void _mapper() override;
+        std::unordered_map<long long, Status> _table;
+    };
+
+    class Task {
+    public:
+        const long long id;
+        const long long parent_id;
+        const std::string name;
+        const std::string detail;
+        const long long status_id;
+        const std::string created_at;
+        const std::string updated_at;
+
+        friend class TaskTable;
+
+    private:
+        Task(long long id_,
+             long long parent_id_,
+             std::string name_,
+             std::string detail_,
+             long long status_id_,
+             std::string created_at_,
+             std::string updated_at_
+        );
+    };
+
+    class TaskTable final : public DatabaseTable {
+    public:
+        TaskTable();
+
+        const std::unordered_map<long long, Task>& getTable();
+
+    private:
+        void _mapper() override;
+
+        std::unordered_map<long long, Task> _table;
+    };
+
+    class Worktime {
+    public:
+        const long long id;
+        const long long task_id;
+        const std::string memo;
+        const std::string starting_time;
+        const std::string finishing_time;
+        const std::string created_at;
+        const std::string updated_at;
+
+        friend class WorktimeTable;
+
+    private:
+        Worktime(
+            long long id_,
+            long long task_id_,
+            std::string memo_,
+            std::string starting_time_,
+            std::string finishing_time_,
+            std::string created_at_,
+            std::string updated_at_
+        );
+    };
+
+    class WorktimeTable final : DatabaseTable {
+    public:
+        WorktimeTable();
+
+        const std::unordered_map<long long, Worktime>& getTable();
+
+    private:
+        void _mapper() override;
+
+        std::unordered_map<long long, Worktime> _table;
+    };
+
+    class Schedule {
+    public:
+        const long long id;
+        const long long task_id;
+        const std::string starting_time;
+        const std::string finishing_time;
+        const std::string created_at;
+        const std::string updated_at;
+
+        friend class ScheduleTable;
+
+    private:
+        Schedule(
+            long long id_,
+            long long task_id_,
+            std::string starting_time_,
+            std::string finishing_time_,
+            std::string created_at_,
+            std::string updated_at_);
+    };
+
+    class ScheduleTable final : DatabaseTable {
+    public:
+        ScheduleTable();
+
+        const std::unordered_map<long long, Schedule>& getTable();
+
+    private:
+        void _mapper() override;
+
+        std::unordered_map<long long, Schedule> _table;
     };
 } // core
 
