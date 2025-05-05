@@ -10,7 +10,7 @@ FetchContent_Declare(ftxui
 
 FetchContent_MakeAvailable(ftxui)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(lib/sqlite3)
 
@@ -26,6 +26,8 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/utilities/Utilities.cpp
         src/utilities/Utilities.h
         src/resource.h
+        src/core/Logger.cpp
+        src/core/Logger.h
 )
 
 target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component sqlite3)
