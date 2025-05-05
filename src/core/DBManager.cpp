@@ -22,7 +22,7 @@
 
 #include "DBManager.h"
 
-#include <complex.h>
+#include <complex>
 #include <format>
 #include <fstream>
 #include <iosfwd>
@@ -30,6 +30,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <memory>
 
 #include "../resource.h"
 
@@ -56,8 +57,6 @@ namespace core::db {
 
     DBManager::~DBManager()
     {
-        if (_db != nullptr)
-            sqlite3_close_v2(_db);
     }
 
     void DBManager::setDBFile(std::string file_path_)
@@ -99,7 +98,7 @@ namespace core::db {
     int DBManager::execute(const std::string& sql_, int (*callback_)(void*, int, char**, char**), void* callback_arg)
     {
         if (const int open_db_err = openDB(); open_db_err != 0) { return open_db_err; }
-        if (const int execute_err = sqlite3_exec(_manager->_db, sql_.c_str(), callback_, callback_arg, nullptr);
+        if (const int execute_err = sqlite3_exec(_manager->_db.get(), sql_.c_str(), callback_, callback_arg, nullptr);
             execute_err != 0) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
         return 0;
     }
@@ -109,48 +108,49 @@ namespace core::db {
     {
         // db接続を開く(既に開かれている場合は何も実行されない)
         if (const int open_db_err = openDB(); open_db_err != 0) { return open_db_err; }
-        sqlite3_stmt* stmt;
+        sqlite3_stmt* tmp_stmt;
         // sqlを準備する。
-        if (const int prepare_err = sqlite3_prepare_v2(_manager->_db, sql_.c_str(), static_cast<int>(sql_.size()),
-                                                       &stmt, nullptr);
+        if (const int prepare_err = sqlite3_prepare_v2(_manager->_db.get(), sql_.c_str(), static_cast<int>(sql_.size()),
+                                                       &tmp_stmt, nullptr);
             prepare_err != SQLITE_OK) { return getPrefixedErrorCode(prepare_err, ErrorPrefix::PREPARE_SQL_ERROR); }
+        const std::unique_ptr<sqlite3_stmt, decltype(sqliteDeleter::statement_finalizer)> stmt(tmp_stmt, sqliteDeleter::statement_finalizer);
         // placeholderと値を紐づける。
-        if (const int binder_err = binder_(binder_arg_, stmt); binder_err != SQLITE_OK) { return binder_err; }
+        if (const int binder_err = binder_(binder_arg_, stmt.get()); binder_err != SQLITE_OK) { return binder_err; }
         // sqlを実行
-        int step_status = sqlite3_step(stmt);
+        int step_status = sqlite3_step(stmt.get());
         // エラーが発生しておらず、select文であれば、データをクリアする。
-        if (sqlite3_stmt_readonly(stmt) && (step_status == SQLITE_ROW || step_status == SQLITE_DONE)) {
+        if (sqlite3_stmt_readonly(stmt.get()) && (step_status == SQLITE_ROW || step_status == SQLITE_DONE)) {
             result_table_.clear();
         }
         if (step_status != SQLITE_ROW) {
-            if (const int finalize_err = sqlite3_finalize(stmt); finalize_err != SQLITE_OK) {
-                return getPrefixedErrorCode(finalize_err, ErrorPrefix::FINALIZE_STMT_ERROR);
+            if (step_status != SQLITE_DONE) {
+                return getPrefixedErrorCode(step_status, ErrorPrefix::STEP_ERROR);
             }
             return SQLITE_OK;
         }
         // 取得した行をTableに格納する。
         while (step_status == SQLITE_ROW) {
-            const int col_count = sqlite3_column_count(stmt);
+            const int col_count = sqlite3_column_count(stmt.get());
             RowHash current_row;
             // それぞれの列を適切な型でRowHashに格納する。
             for (int col = 0; col < col_count; col++) {
-                const int col_type = sqlite3_column_type(stmt, col);
+                const int col_type = sqlite3_column_type(stmt.get(), col);
                 ColValue col_val;
                 switch (col_type) {
                 case 2:
                     col_val.first = ColType::T_REAL;
-                    col_val.second = sqlite3_column_double(stmt, col);
+                    col_val.second = sqlite3_column_double(stmt.get(), col);
                     break;
                 case 1:
                     col_val.first = ColType::T_INTEGER;
-                    col_val.second = sqlite3_column_int64(stmt, col);
+                    col_val.second = sqlite3_column_int64(stmt.get(), col);
                     break;
                 case 3:
                     {
                         col_val.first = ColType::T_TEXT;
                         // 戻り値がconst unsigned char*なので、const char*に変換する。
-                        const auto text = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
-                        const int text_size = sqlite3_column_bytes(stmt, col);
+                        const auto text = reinterpret_cast<const char*>(sqlite3_column_text(stmt.get(), col));
+                        const int text_size = sqlite3_column_bytes(stmt.get(), col);
                         col_val.second = std::string(text, text_size);
                         break;
                     }
@@ -160,16 +160,13 @@ namespace core::db {
                     col_val.second = nullptr;
                     break;
                 }
-                const std::string column_name = sqlite3_column_name(stmt, col);
+                const std::string column_name = sqlite3_column_name(stmt.get(), col);
                 current_row.try_emplace(column_name, col_val);
             }
             // TableにRowHashを追加。
             result_table_.emplace_back(std::move(current_row));
             // sqlを実行
-            step_status = sqlite3_step(stmt);
-        }
-        if (const int finalize_err = sqlite3_finalize(stmt); finalize_err != SQLITE_OK) {
-            return getPrefixedErrorCode(finalize_err, ErrorPrefix::FINALIZE_STMT_ERROR);
+            step_status = sqlite3_step(stmt.get());
         }
         return SQLITE_OK;
     }
@@ -193,9 +190,7 @@ namespace core::db {
     int DBManager::ReinitializeDB()
     {
         if (_manager != nullptr && _manager->_db != nullptr) {
-            if (const int close_err = _manager->_closeDB(); close_err != SQLITE_OK) {
-                return close_err;
-            }
+            _manager->_closeDB();
         }
         std::error_code remove_err;
         if (std::filesystem::remove(_db_file_path, remove_err)) return openDB();
@@ -210,33 +205,26 @@ namespace core::db {
     int DBManager::_openDB(const std::string& db_file_)
     {
         if (this->_db == nullptr) {
-            if (const int open_db_err = sqlite3_open(db_file_.c_str(), &this->_db); open_db_err != SQLITE_OK) {
-                sqlite3_close(this->_db);
+            sqlite3* tmp_db;
+            if (const int open_db_err = sqlite3_open(db_file_.c_str(), &tmp_db); open_db_err != SQLITE_OK) {
+                sqliteDeleter::database_closer(tmp_db);
                 return getPrefixedErrorCode(open_db_err, ErrorPrefix::OPEN_DB_ERROR);
             }
+            this->_db.reset(tmp_db);
             const int execute_err = sqlite3_exec(
-                this->_db, std::string(F_OPEN_DB_PREPROC_SQL, SIZE_OPEN_DB_PREPROC_SQL).c_str(), nullptr,
+                this->_db.get(), std::string(F_OPEN_DB_PREPROC_SQL, SIZE_OPEN_DB_PREPROC_SQL).c_str(), nullptr,
                 nullptr, nullptr);
             if (execute_err != SQLITE_OK) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
         }
         return SQLITE_OK;
     }
 
-    int DBManager::_closeDB()
-    {
-        int ret_val{0};
-        if (_db != nullptr)
-            ret_val = sqlite3_close_v2(_db);
-        _db = nullptr;
-        if (ret_val != SQLITE_OK)
-            ret_val = getPrefixedErrorCode(ret_val, ErrorPrefix::CLOSE_ERROR);
-        return ret_val;
-    }
+    void DBManager::_closeDB() { _db = nullptr; }
 
     int DBManager::_initializeDB() const
     {
         const int sqlite_err = sqlite3_exec(
-            this->_db,
+            this->_db.get(),
             std::string(F_INITIALIZE_DB_SQL, SIZE_INITIALIZE_DB_SQL).c_str(),
             nullptr,
             nullptr,
@@ -279,14 +267,9 @@ namespace core::db {
 
     const Table& DatabaseTable::getRawTable() { return _data; }
 
-    const std::vector<std::string>& DatabaseTable::getColumnNames()
-    {
-        return _column_names;}
+    const std::vector<std::string>& DatabaseTable::getColumnNames() { return _column_names; }
 
-    const std::string& DatabaseTable::getTableName()
-    {
-        return _table_name;
-    }
+    const std::string& DatabaseTable::getTableName() { return _table_name; }
 
     int DatabaseTable::_binder(void* bind_arg_, sqlite3_stmt* stmt)
     {
@@ -361,10 +344,10 @@ namespace core::db {
     {
     }
 
-    const std::unordered_map<long long, Task>& TaskTable::getTable()
-    {return _table;}
+    const std::unordered_map<long long, Task>& TaskTable::getTable() { return _table; }
 
-    void TaskTable::_mapper() {
+    void TaskTable::_mapper()
+    {
         _table.clear();
         for (auto i : _data) {
             _table.try_emplace(
@@ -402,23 +385,21 @@ namespace core::db {
     }
 
     ScheduleTable::ScheduleTable(): DatabaseTable({
-            "id",
-            "task_id",
-            "starting_time",
-            "finishing_time",
-            "created_at",
-            "updated_at"
-        },
-        "schedule")
+                                                      "id",
+                                                      "task_id",
+                                                      "starting_time",
+                                                      "finishing_time",
+                                                      "created_at",
+                                                      "updated_at"
+                                                  },
+                                                  "schedule")
     {
     }
 
-    const std::unordered_map<long long, Schedule>& ScheduleTable::getTable()
-    {
-        return _table;
-    }
+    const std::unordered_map<long long, Schedule>& ScheduleTable::getTable() { return _table; }
 
-    void ScheduleTable::_mapper() {
+    void ScheduleTable::_mapper()
+    {
         _table.clear();
         for (auto i : _data) {
             _table.try_emplace(
@@ -449,10 +430,10 @@ namespace core::db {
     {
     }
 
-    const std::unordered_map<long long, Worktime>& WorktimeTable::getTable()
-    {return _table;}
+    const std::unordered_map<long long, Worktime>& WorktimeTable::getTable() { return _table; }
 
-    void WorktimeTable::_mapper() {
+    void WorktimeTable::_mapper()
+    {
         _table.clear();
         for (auto i : _data) {
             _table.try_emplace(

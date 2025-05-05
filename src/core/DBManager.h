@@ -54,6 +54,19 @@ namespace core::db {
 
     using Table = std::vector<RowHash>;
 
+    namespace sqliteDeleter {
+        const auto database_closer = [](sqlite3* db_)
+        {
+            if (db_ != nullptr)
+                sqlite3_close_v2(db_);
+        };
+
+        const auto statement_finalizer = [](sqlite3_stmt* stmt_) {
+            if (stmt_ != nullptr)
+                sqlite3_finalize(stmt_);
+        };
+    };
+
     /**
      * @brief ColValueから適切な形式で値を取得します。
      * @param value_ 値が格納されているColValue
@@ -148,7 +161,7 @@ namespace core::db {
             EXECUTE_ERROR,
             PREPARE_SQL_ERROR,
             STEP_ERROR,
-            FINALIZE_STMT_ERROR,
+            STMT_ERROR,
             BIND_ERROR,
             MAPPER_ERROR,
             CLOSE_ERROR,
@@ -204,7 +217,7 @@ namespace core::db {
          * @brief データベース接続を閉じます。
          * @return _getPrefixedErrorCode()に従ったエラーを返します。
          */
-        int _closeDB();
+        void _closeDB();
 
         /**
          * @brief DBを初期化します。
@@ -215,7 +228,7 @@ namespace core::db {
          */
         [[nodiscard]] int _initializeDB() const;
 
-        sqlite3* _db{nullptr};
+        std::unique_ptr<sqlite3, decltype(sqliteDeleter::database_closer)> _db{nullptr, sqliteDeleter::database_closer};
         static std::unique_ptr<DBManager> _manager;
         static std::filesystem::path _db_file_path;
     };
