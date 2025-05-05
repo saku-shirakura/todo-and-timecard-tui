@@ -55,10 +55,6 @@ namespace core::db {
         return default_value_;
     }
 
-    DBManager::~DBManager()
-    {
-    }
-
     void DBManager::setDBFile(std::string file_path_)
     {
         _db_file_path = std::move(file_path_);
@@ -113,7 +109,7 @@ namespace core::db {
         if (const int prepare_err = sqlite3_prepare_v2(_manager->_db.get(), sql_.c_str(), static_cast<int>(sql_.size()),
                                                        &tmp_stmt, nullptr);
             prepare_err != SQLITE_OK) { return getPrefixedErrorCode(prepare_err, ErrorPrefix::PREPARE_SQL_ERROR); }
-        const std::unique_ptr<sqlite3_stmt, decltype(sqliteDeleter::statement_finalizer)> stmt(tmp_stmt, sqliteDeleter::statement_finalizer);
+        const std::unique_ptr<sqlite3_stmt,sqliteDeleter::StatementFinalizer> stmt(tmp_stmt, sqliteDeleter::StatementFinalizer());
         // placeholderと値を紐づける。
         if (const int binder_err = binder_(binder_arg_, stmt.get()); binder_err != SQLITE_OK) { return binder_err; }
         // sqlを実行
@@ -207,7 +203,7 @@ namespace core::db {
         if (this->_db == nullptr) {
             sqlite3* tmp_db;
             if (const int open_db_err = sqlite3_open(db_file_.c_str(), &tmp_db); open_db_err != SQLITE_OK) {
-                sqliteDeleter::database_closer(tmp_db);
+                sqliteDeleter::DatabaseCloser()(tmp_db);
                 return getPrefixedErrorCode(open_db_err, ErrorPrefix::OPEN_DB_ERROR);
             }
             this->_db.reset(tmp_db);
@@ -219,7 +215,7 @@ namespace core::db {
         return SQLITE_OK;
     }
 
-    void DBManager::_closeDB() { _db = nullptr; }
+    void DBManager::_closeDB() { this->_db = nullptr; }
 
     int DBManager::_initializeDB() const
     {

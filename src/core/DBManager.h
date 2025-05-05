@@ -55,17 +55,22 @@ namespace core::db {
     using Table = std::vector<RowHash>;
 
     namespace sqliteDeleter {
-        const auto database_closer = [](sqlite3* db_)
-        {
-            if (db_ != nullptr)
-                sqlite3_close_v2(db_);
+        struct DatabaseCloser {
+            void operator()(sqlite3* db_) const
+            {
+                if (db_ != nullptr)
+                    sqlite3_close_v2(db_);
+            }
         };
 
-        const auto statement_finalizer = [](sqlite3_stmt* stmt_) {
-            if (stmt_ != nullptr)
-                sqlite3_finalize(stmt_);
+        struct StatementFinalizer {
+            void operator()(sqlite3_stmt* stmt_) const
+            {
+                if (stmt_ != nullptr)
+                    sqlite3_finalize(stmt_);
+            }
         };
-    };
+    }
 
     /**
      * @brief ColValueから適切な形式で値を取得します。
@@ -98,7 +103,7 @@ namespace core::db {
     public:
         DBManager() = default;
 
-        ~DBManager();
+        ~DBManager() = default;
 
         /**
          * @brief デフォルトのデータベースファイルのパスを変更します。この際、接続は閉じられます。
@@ -228,7 +233,7 @@ namespace core::db {
          */
         [[nodiscard]] int _initializeDB() const;
 
-        std::unique_ptr<sqlite3, decltype(sqliteDeleter::database_closer)> _db{nullptr, sqliteDeleter::database_closer};
+        std::unique_ptr<sqlite3, sqliteDeleter::DatabaseCloser> _db{nullptr, sqliteDeleter::DatabaseCloser()};
         static std::unique_ptr<DBManager> _manager;
         static std::filesystem::path _db_file_path;
     };
