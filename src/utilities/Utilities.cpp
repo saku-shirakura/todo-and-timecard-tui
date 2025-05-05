@@ -22,25 +22,13 @@
 
 #include "Utilities.h"
 
-#include <stdexcept>
 
-
-std::string util::getEnv(const std::string& variableName)
+std::string util::getEnv(const std::string& variable_name_, const std::string& default_value_)
 {
-    size_t required_size;
-
-    // 環境変数のサイズを取得し、メモリを確保する。
-    getenv_s(&required_size, nullptr, 0, variableName.c_str());
-    const auto buff = static_cast<char*>(malloc(required_size));
-    if (!buff) { throw std::runtime_error("Fatal: Failed to allocate memory."); }
-
-    // 環境変数を取得する。
-    if (const errno_t error_no = getenv_s(&required_size, buff, required_size, variableName.c_str())) {
-        free(buff);
-        throw std::runtime_error("getenv_s error. errno: " + std::to_string(error_no));
-    }
-    std::string result{buff, required_size - 1 /* ナル文字を含めない */};
-    free(buff);
+    const char *env = std::getenv(variable_name_.c_str());
+    if (env == nullptr)
+        return default_value_;
+    std::string result = env;
     return result;
 }
 
@@ -57,7 +45,7 @@ std::string util::getDataPath(const std::string& filename_)
         );
 
         // アプリのベースディレクトリ
-        path /= "com.sakushira.todo-and-timecard-tui";
+        path /= ".com.sakushira.todo-and-timecard-tui";
 
         // ファイル名を加えたパス
         if (!filename_.empty()) { path /= std::filesystem::path{filename_}; }

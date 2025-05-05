@@ -39,10 +39,11 @@ namespace util {
      * @brief getenv_sをC++で扱いやすい形式にしたラッパー
      * @exception std::runtime_error メモリを割り当てられませんでした。
      * @exception std::runtime_error 環境変数を取得できませんでした。
-     * @param variableName 取得したい環境変数名
+     * @param variable_name_ 取得したい環境変数名
+     * @param default_value_
      * @return 環境変数から取得した値。
      */
-    std::string getEnv(const std::string& variableName);
+    std::string getEnv(const std::string& variable_name_, const std::string& default_value_ = "");
 
     /**
      * @brief アプリデータディレクトリ及び、アプリデータファイルのパスを取得します。
@@ -50,6 +51,7 @@ namespace util {
      * @return アプリデータディレクトリに`filename_`を結合したパス。エラー時には空文字列が帰ります。
      */
     std::string getDataPath(const std::string& filename_ = "");
+
 }
 
 #endif //UTILITIES_H
