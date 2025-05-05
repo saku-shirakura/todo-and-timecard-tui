@@ -1,3 +1,9 @@
+library-name: sqlite3
+website: https://sqlite.org
+license: Public Domain
+==
+^^
+==
 library-name: ftxui
 author: Arthur Sonzogni
 website: -
@@ -29,4 +35,3 @@ THE SOFTWARE.
 
 ==
 ^^
-
