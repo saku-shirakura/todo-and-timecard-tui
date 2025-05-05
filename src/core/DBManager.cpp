@@ -190,6 +190,18 @@ namespace core::db {
         return error_code_ + static_cast<int>(prefix_) * prefix_base;
     }
 
+    int DBManager::ReinitializeDB()
+    {
+        if (_manager != nullptr && _manager->_db != nullptr) {
+            if (const int close_err = _manager->_closeDB(); close_err != SQLITE_OK) {
+                return close_err;
+            }
+        }
+        std::error_code remove_err;
+        if (std::filesystem::remove(_db_file_path, remove_err)) return openDB();
+        return remove_err.value();
+    }
+
     bool DBManager::_isValidErrorPos(const int error_pref_)
     {
         return error_pref_ < static_cast<int>(ErrorPrefix::LAST_ENUM) && error_pref_ >= 0;

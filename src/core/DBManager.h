@@ -179,6 +179,12 @@ namespace core::db {
          */
         static int getPrefixedErrorCode(int error_code_, ErrorPrefix prefix_);
 
+        /**
+         * @brief データベースのデータをすべて破棄し、初期化します。
+         * @return openDB()の戻り値、もしくは、_closeDBの戻り値、もしくは、std::filesystem::removeのエラーコード
+         */
+        static int ReinitializeDB();
+
     private:
         /**
          * @brief error_pref_がErrorPrefixの範囲内か確認します。
