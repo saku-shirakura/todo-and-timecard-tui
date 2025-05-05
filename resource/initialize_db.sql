@@ -16,7 +16,7 @@ CREATE TABLE status
 CREATE TABLE task
 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id  INTEGER REFERENCES task (id) ON DELETE CASCADE,
+    parent_id  INTEGER REFERENCES task (id) ON DELETE CASCADE             DEFAULT NULL,
     name       TEXT                                              NOT NULL,
     detail     TEXT,
     status_id  INTEGER REFERENCES status (id) ON DELETE RESTRICT NOT NULL,
@@ -34,12 +34,12 @@ END;
 CREATE TABLE worktime
 (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL,
+    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL DEFAULT NULL,
     memo           TEXT,
-    starting_time  TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
-    finishing_time TEXT,
-    created_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
-    updated_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+    starting_time  TEXT    NOT NULL                                DEFAULT (DATETIME('now', 'localtime')),
+    finishing_time TEXT                                            DEFAULT NULL,
+    created_at     TEXT    NOT NULL                                DEFAULT (DATETIME('now', 'localtime')),
+    updated_at     TEXT    NOT NULL                                DEFAULT (DATETIME('now', 'localtime'))
 );
 
 CREATE TRIGGER trigger_worktime_updated_at
@@ -52,11 +52,11 @@ END;
 CREATE TABLE schedule
 (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL,
+    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL DEFAULT NULL,
     starting_time  TEXT    NOT NULL,
     finishing_time TEXT    NOT NULL,
-    created_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime')),
-    updated_at     TEXT    NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+    created_at     TEXT    NOT NULL                                DEFAULT (DATETIME('now', 'localtime')),
+    updated_at     TEXT    NOT NULL                                DEFAULT (DATETIME('now', 'localtime'))
 );
 
 CREATE TRIGGER trigger_schedule_updated_at
@@ -71,3 +71,7 @@ VALUES ('Progress'),
        ('Complete'),
        ('Incomplete'),
        ('Not planned');
+
+CREATE INDEX idx_task_status_id ON task (status_id);
+CREATE INDEX idx_worktime_time_per_task ON worktime (task_id, starting_time, finishing_time);
+CREATE INDEX idx_schedule_time_per_task ON schedule (task_id, starting_time, finishing_time);
