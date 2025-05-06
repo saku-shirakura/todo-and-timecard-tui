@@ -176,7 +176,8 @@ namespace core::db {
     }
 
     int DBManager::_usePlaceholderUniSql(const std::string& sql_, Table& result_table_,
-        int(* binder_)(void*, sqlite3_stmt*), void* binder_arg_, std::string& sql_remaining_)
+                                         int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                         std::string& sql_remaining_)
     {
         std::lock_guard lock(this->_interface_mtx);
         return _usePlaceholderUniSqlInternal(sql_, result_table_, binder_, binder_arg_, sql_remaining_);
@@ -184,7 +185,7 @@ namespace core::db {
 
     // ReSharper disable once CppPassValueParameterByConstReference
     int DBManager::_usePlaceholderUniSqlInternal(std::string sql_ /* c_str()による未定義動作を回避するためにコピー */, Table& result_table_, int (*binder_)(void*, sqlite3_stmt*), // NOLINT(performance-unnecessary-value-param)
-                                         void* binder_arg_, std::string& sql_remaining_)
+                                                 void* binder_arg_, std::string& sql_remaining_)
     {
         std::lock_guard lock(this->_internal_mtx);
         if (_db == nullptr) { return getPrefixedErrorCode(0, ErrorPrefix::DB_NOT_OPEN); }
@@ -298,20 +299,21 @@ namespace core::db {
     const std::regex front_gap_pattern{"^\\s+"};
 
     void DBManager::_queryLogger(const std::chrono::time_point<std::chrono::high_resolution_clock> start_query_at_,
-                                 const std::string& sql_,const bool success_,const bool is_selected,const int rows_count_)
+                                 const std::string& sql_, const bool success_, const bool is_selected,
+                                 const int rows_count_)
     {
         const auto end_query_at = std::chrono::high_resolution_clock::now();
         std::string normalized_sql = std::regex_replace(sql_, front_gap_pattern, "");
         std::string summary{};
         if (is_selected || rows_count_ > 0) {
-            summary = std::format("{} {} rows - ", is_selected ? "Selected": "Affected", rows_count_);
+            summary = std::format("{} {} rows - ", is_selected ? "Selected" : "Affected", rows_count_);
         }
         Logger::debug(
             std::format(
                 "query:\n{}\n({} ms) {}{}.", normalized_sql,
                 std::chrono::duration<double, std::milli>(end_query_at - start_query_at_).count(),
                 summary,
-                success_ ? "ok": "failed"
+                success_ ? "ok" : "failed"
             ),
             "DBManager");
     }
@@ -336,7 +338,14 @@ namespace core::db {
 
     int DatabaseTable::selectRecords() { return selectRecords("", {}); }
 
-    int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_)
+    int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_,
+                                     const std::string& order_by_)
+    {
+        return selectRecords(where_clause_, placeholder_value_, order_by_, -1, -1);
+    }
+
+    int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_,
+                                     const std::string& order_by_, const int limit_, const int offset_)
     {
         std::string columns;
         for (const std::string& col : _column_names) {
@@ -346,8 +355,11 @@ namespace core::db {
         }
         std::string sql;
         if (where_clause_.empty())
-            sql = std::format("SELECT {} FROM {};", columns, _table_name);
-        else sql = std::format("SELECT {} FROM {} WHERE {};", columns, _table_name, where_clause_);
+            sql = std::format("SELECT {} FROM {}", columns, _table_name);
+        else sql = std::format("SELECT {} FROM {} WHERE {}", columns, _table_name, where_clause_);
+        if (order_by_.empty()) sql = std::format("{} ORDER BY {}", sql, order_by_);
+        if (limit_ >= 0 && offset_ >= 0) sql = std::format("{} LIMIT {} OFFSET {}", sql, limit_, offset_);
+        sql += ";";
         std::string unused_string;
         const int ret_val = usePlaceholderUniSql(sql, placeholder_value_, unused_string);
         _mapper();

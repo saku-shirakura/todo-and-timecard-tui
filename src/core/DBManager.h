@@ -32,12 +32,36 @@
 #ifndef DBMANAGER_H
 #define DBMANAGER_H
 #include <filesystem>
+#include <iosfwd>
+#include <iosfwd>
+#include <iosfwd>
+#include <iosfwd>
+#include <iosfwd>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <sqlite3.h>
+#include <utility>
+#include <utility>
+#include <utility>
+#include <utility>
+#include <utility>
+#include <utility>
+#include <variant>
+#include <variant>
+#include <variant>
+#include <variant>
+#include <variant>
+#include <variant>
+#include <vector>
+#include <vector>
+#include <vector>
+#include <vector>
+#include <vector>
+#include <vector>
 #include <vector>
 
 namespace core::db {
@@ -317,10 +341,22 @@ namespace core::db {
          * @brief 1つのselect文を実行し、メンバ変数_dataを更新する(結果はgetTable()によって取得できる)。その際、placeholderを使用する。
          * @param where_clause_ WHERE句の後の条件文
          * @param placeholder_value_ 条件文のplaceholder(?)に埋め込む値
+         * @param order_by_ ORDER BY句の後の条件文
          * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
         int selectRecords(const std::string& where_clause_,
-                          const std::vector<ColValue>& placeholder_value_);
+                          const std::vector<ColValue>& placeholder_value_, const std::string& order_by_ = "");
+
+        /**
+         * @brief 1つのselect文を実行し、メンバ変数_dataを更新する(結果はgetTable()によって取得できる)。その際、placeholderを使用する。
+         * @param where_clause_ WHERE句の後の条件文
+         * @param placeholder_value_ 条件文のplaceholder(?)に埋め込む値
+         * @param order_by_ ORDER BY句の後の条件文
+         * @param limit_ LIMIT句の数値
+         * @param offset_ OFFSET句の数値
+         * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
+         */
+        int selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_, const std::string& order_by_, int limit_, int offset_);
 
         /**
          * @brief 生のテーブルを取得します。
