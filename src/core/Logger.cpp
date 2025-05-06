@@ -24,12 +24,30 @@
 #include <chrono>
 #include <format>
 
+constexpr size_t rotate_count = 5;
+constexpr size_t max_log_size = 1 * 1024 * 1024;
+
 void Logger::initialize()
 {
     if (_initialized)
         return;
     sqlite3_config(SQLITE_CONFIG_LOG, sqliteLoggingCallback, nullptr);
     _initialized = true;
+}
+
+void Logger::rotate()
+{
+    std::error_code err;
+    if (!_out.is_open() || _out.fail() || _out.tellp() < max_log_size) { return; }
+    _out.close();
+    std::filesystem::remove(_getRotatePath(rotate_count), err);
+    for (int i = rotate_count - 1; i >= 1; i--) {
+        if (std::filesystem::exists(_getRotatePath(i), err)) {
+            std::filesystem::rename(_getRotatePath(i), _getRotatePath(i + 1), err);
+        }
+    }
+    std::filesystem::rename(_log_file_path, _getRotatePath(1), err);
+    _openLogFile();
 }
 
 void Logger::log(const std::string& msg_, const std::string& log_level_, const std::string& reporter_) noexcept
@@ -41,6 +59,7 @@ void Logger::log(const std::string& msg_, const std::string& log_level_, const s
             _success_prev_logging = false;
             return;
         }
+        rotate();
         std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
         _out << std::format("{:%c}\t", time);
         if (!log_level_.empty()) _out << "[" << log_level_ << "] ";
@@ -66,10 +85,7 @@ void Logger::critical(const std::string& msg_, const std::string& reporter_) noe
     log(msg_, "CRITICAL", reporter_);
 }
 
-void Logger::note(const std::string& msg_, const std::string& reporter_) noexcept
-{
-    log(msg_, "NOTE", reporter_);
-}
+void Logger::note(const std::string& msg_, const std::string& reporter_) noexcept { log(msg_, "NOTE", reporter_); }
 
 void Logger::sqliteLoggingCallback([[maybe_unused]] void* pArg, int iErrCode, const char* zMsg) noexcept
 {
@@ -96,10 +112,7 @@ std::unordered_map<std::string, Logger::LogLevel> Logger::_log_level_map{
     {"NOTE", LogLevel::INFO}
 };
 
-void Logger::_openLogFile()
-{
-    _out.open(util::getDataPath("program.log"), std::ios::out | std::ios::in | std::ios::app);
-}
+void Logger::_openLogFile() { _out.open(_log_file_path, std::ios::out | std::ios::in | std::ios::app); }
 
 bool Logger::_ensureOpenLogFile()
 {
@@ -108,7 +121,13 @@ bool Logger::_ensureOpenLogFile()
     return _out.is_open();
 }
 
+std::filesystem::path Logger::_getRotatePath(const size_t rotateNumber)
+{
+    return _log_file_path.parent_path() / (_log_file_path.filename().string() + "." + std::to_string(rotateNumber));
+}
+
 std::ofstream Logger::_out;
 bool Logger::_initialized = false;
 std::mutex Logger::_mtx;
 bool Logger::_success_prev_logging = true;
+std::filesystem::path Logger::_log_file_path{util::getDataPath("program.log")};

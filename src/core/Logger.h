@@ -48,7 +48,15 @@
  */
 class Logger {
 public:
+    /**
+     * @brief sqlite3のロギングコールバックを設定するなど、ロガーの初期設定を行います。main()の先頭で呼び出してください。
+     */
     static void initialize();
+
+    /**
+     * @brief ログローテーションを実行します。
+     */
+    static void rotate();
 
     enum class LogLevel {
         DEBUG,
@@ -92,10 +100,13 @@ private:
 
     static bool _ensureOpenLogFile();
 
+    static std::filesystem::path _getRotatePath(size_t rotateNumber);
+
     static std::ofstream _out;
     static bool _initialized;
     static std::mutex _mtx;
     static bool _success_prev_logging;
+    static std::filesystem::path _log_file_path;
 };
 
 
