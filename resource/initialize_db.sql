@@ -72,6 +72,6 @@ VALUES ('Progress'),
        ('Incomplete'),
        ('Not planned');
 
-CREATE INDEX idx_task_status_id ON task (status_id);
+CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);
 CREATE INDEX idx_worktime_time_per_task ON worktime (task_id, starting_time, finishing_time);
 CREATE INDEX idx_schedule_time_per_task ON schedule (task_id, starting_time, finishing_time);
