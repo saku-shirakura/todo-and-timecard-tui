@@ -62,6 +62,10 @@ namespace core::db {
         struct StatementFinalizer {
             void operator()(sqlite3_stmt* stmt_) const;
         };
+
+        struct SqliteStringDeleter {
+            void operator()(char* string_) const;
+        };
     }
 
     /**
@@ -101,7 +105,7 @@ namespace core::db {
          * @brief デフォルトのデータベースファイルのパスを変更します。この際、接続は閉じられます。
          * @param file_path_ 接続対象データベースのパス
          */
-        static void setDBFile(std::string file_path_);
+        static void setDBFile(const std::string& file_path_);
 
         /**
          * @brief DBManager全体でのデータベース接続を確立します。
@@ -116,27 +120,26 @@ namespace core::db {
 
 
         /**
-         * @brief sql文を実行します。
+         * @brief 複数のsql文を実行します。データは取得できません。データを取得する用途では`usePlaceholderUniSql()`を使用してください。
          * @param sql_ 実行するsql文
-         * @param callback_ コールバック関数
-         * @param callback_arg コールバック関数の第一引数
          * @returns 戻り値については、openDB()を参照してください。
          */
-        static int execute(const std::string& sql_, int (*callback_)(void*, int, char**, char**), void* callback_arg);
+        static int execute(const std::string& sql_);
 
         /**
-         * @brief 単一のsql文を実行します。その際、binder_コールバックによりプレースホルダを利用できます。
-         * @warning この関数では、create, select, insert, update, delete以外の文を実行しないでください。
-         * @warning それらを実行したい場合は、execute()を用いてください。その場合、placeholderは使えません。
-         * @param sql_ 単一のsql文
+         * @brief 先頭のsql文を実行します。その際、binder_コールバックによりプレースホルダを利用できます。
+         * @details この関数に無効なsql文が渡され、sqlite3_prepare_v2()による、準備済みステートメントがnullptrである場合はEND_OF_STATEMENTを返します。
+         * @param sql_ sql文
          * @param result_table_ 値を格納する対象のテーブル。emplace_backにより要素が追加されます。
          * @param binder_ placeholderをバインドするためのコールバック (prepareの実行直後に呼び出されます。)
-         * @param binder_arg_
+         * @param binder_arg_ binderの第一引数
+         * @param sql_remaining_ sql_のうち実行されなかった部分の文字列
          * @return 戻り値については、openDB()を参照してください。
          */
         static int usePlaceholderUniSql(const std::string& sql_,
                                         Table& result_table_,
-                                        int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_);
+                                        int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                        std::string& sql_remaining_);
 
         /**
          * @details FIRST_ENUM 先頭の値 - 1
@@ -149,6 +152,9 @@ namespace core::db {
          * @details FINALIZE_STMT_ERROR sqlite3_finalizeのエラー
          * @details BIND_ERROR sqlite3_bind_XXXのエラー
          * @details MAPPER_ERROR マッピングに失敗
+         * @details CLOSE_ERROR DBを閉じられませんでした。
+         * @details DB_NOT_OPEN DBは開かれていません。
+         * @details END_OF_STATEMENT 処理可能なsql文はありません。
          * @details LAST_ENUM ErrorPrefixの数を求めるためのenum
          */
         enum class ErrorPrefix {
@@ -162,6 +168,8 @@ namespace core::db {
             BIND_ERROR,
             MAPPER_ERROR,
             CLOSE_ERROR,
+            DB_NOT_OPEN,
+            END_OF_STATEMENT,
             LAST_ENUM
         };
 
@@ -204,6 +212,28 @@ namespace core::db {
         static bool _isValidErrorPos(int error_pref_);
 
         /**
+         * @brief 複数のsql文を実行します。データは取得できません。データを取得する用途では`usePlaceholderUniSql()`を使用してください。
+         * @param sql_ 実行するsql文
+         * @returns 戻り値については、openDB()を参照してください。
+         */
+        [[nodiscard]] int _execute(const std::string& sql_);
+
+        /**
+         * @brief 先頭のsql文を実行します。その際、binder_コールバックによりプレースホルダを利用できます。
+         * @details この関数に無効なsql文が渡され、sqlite3_prepare_v2()による、準備済みステートメントがnullptrである場合はEND_OF_STATEMENTを返します。
+         * @param sql_ sql文
+         * @param result_table_ 値を格納する対象のテーブル。emplace_backにより要素が追加されます。
+         * @param binder_ placeholderをバインドするためのコールバック (prepareの実行直後に呼び出されます。)
+         * @param binder_arg_ binderの第一引数
+         * @param sql_remaining_ sql_のうち実行されなかった部分の文字列
+         * @return 戻り値については、openDB()を参照してください。
+         */
+        int _usePlaceholderUniSql(std::string sql_,
+                                  Table& result_table_,
+                                  int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                  std::string& sql_remaining_);
+
+        /**
          * @brief データベース`db_file_`を開きます。
          * @param db_file_ 接続したいデータベースファイル
          * @return _getPrefixedErrorCode()に従ったエラーを返します。
@@ -223,11 +253,25 @@ namespace core::db {
          * @details コマンド(プロジェクトルートにて): `file_bundler -i ./resource -o ./src -y`
          * @return _getPrefixedErrorCode()に従ったエラーを返します。
          */
-        [[nodiscard]] int _initializeDB() const;
+        [[nodiscard]] int _initializeDB();
+
+        /**
+         *
+         * @param start_query_at_ クエリの実行開始時間
+         * @param sql_ 実行されたsql文
+         * @param success_ クエリは成功した？
+         * @param is_selected trueであれば、選択クエリ、falseなら更新クエリとして扱います。
+         * @param rows_count_ is_selectedがtrueなら選択された行数。そうでないなら、変更された行数。
+         */
+        static void _queryLogger(std::chrono::time_point<std::chrono::high_resolution_clock> start_query_at_,
+                                 const std::string& sql_, bool success_, bool is_selected, int rows_count_);
+
+        static std::unique_ptr<char, sqliteDeleter::SqliteStringDeleter> sqlite3ExpandedSqlWrapper(sqlite3_stmt* stmt_);
 
         std::unique_ptr<sqlite3, sqliteDeleter::DatabaseCloser> _db{nullptr, sqliteDeleter::DatabaseCloser()};
         static std::unique_ptr<DBManager> _manager;
         static std::filesystem::path _db_file_path;
+        std::mutex _mtx;
     };
 
     class DatabaseTable {
@@ -244,12 +288,14 @@ namespace core::db {
                       std::string table_name_);
 
         /**
-         * @brief 単一のSQL文を実行します。複数のsql文が渡された場合、先頭以外は無視されます。
+         * @brief 先頭のSQL文を実行します。
          * @param sql_ 実行したいsql文 (1文のみ)
          * @param placeholder_value_ プレースホルダの値
+         * @param sql_remaining_ SQL文の実行されなかった部分
          * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
-        int execute(const std::string& sql_, std::vector<ColValue> placeholder_value_);
+        int usePlaceholderUniSql(const std::string& sql_, std::vector<ColValue> placeholder_value_,
+                                 std::string& sql_remaining_);
 
         /**
          * @brief 全てのレコードを取得します。

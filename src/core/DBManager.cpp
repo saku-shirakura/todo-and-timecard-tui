@@ -31,7 +31,9 @@
 #include <variant>
 #include <vector>
 #include <memory>
+#include <regex>
 
+#include "Logger.h"
 #include "../resource.h"
 
 #include "../utilities/Utilities.h"
@@ -47,6 +49,12 @@ namespace core::db {
     {
         if (stmt_ != nullptr)
             sqlite3_finalize(stmt_);
+    }
+
+    void sqliteDeleter::SqliteStringDeleter::operator()(char* string_) const
+    {
+        if (string_ != nullptr)
+            sqlite3_free(string_);
     }
 
     double getDouble(const ColValue& value_, const double default_value_)
@@ -67,9 +75,9 @@ namespace core::db {
         return default_value_;
     }
 
-    void DBManager::setDBFile(std::string file_path_)
+    void DBManager::setDBFile(const std::string& file_path_)
     {
-        _db_file_path = std::move(file_path_);
+        _db_file_path = file_path_;
         _manager->_closeDB();
     }
 
@@ -103,27 +111,94 @@ namespace core::db {
         return 0;
     }
 
-    int DBManager::execute(const std::string& sql_, int (*callback_)(void*, int, char**, char**), void* callback_arg)
+    int DBManager::execute(const std::string& sql_)
     {
         if (const int open_db_err = openDB(); open_db_err != 0) { return open_db_err; }
-        if (const int execute_err = sqlite3_exec(_manager->_db.get(), sql_.c_str(), callback_, callback_arg, nullptr);
-            execute_err != 0) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
-        return 0;
+        return _manager->_execute(sql_);
     }
 
+
     int DBManager::usePlaceholderUniSql(const std::string& sql_, Table& result_table_,
-                                        int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_)
+                                        int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                        std::string& sql_remaining_)
     {
         // db接続を開く(既に開かれている場合は何も実行されない)
         if (const int open_db_err = openDB(); open_db_err != 0) { return open_db_err; }
+        return _manager->_usePlaceholderUniSql(sql_, result_table_, binder_, binder_arg_, sql_remaining_);
+    }
+
+    constexpr int prefix_base = 100000;
+
+    int DBManager::getErrorCode(const int error_code_) { return error_code_ % prefix_base; }
+
+    DBManager::ErrorPrefix DBManager::getErrorPos(const int error_code_)
+    {
+        int err_pref = std::abs(error_code_) / prefix_base;
+        if (!_isValidErrorPos(err_pref)) err_pref = 0;
+        return static_cast<ErrorPrefix>(err_pref);
+    }
+
+    int DBManager::getPrefixedErrorCode(const int error_code_, ErrorPrefix prefix_)
+    {
+        return error_code_ + static_cast<int>(prefix_) * prefix_base;
+    }
+
+    int DBManager::ReinitializeDB()
+    {
+        if (_manager != nullptr && _manager->_db != nullptr) { _manager->_closeDB(); }
+        std::error_code remove_err;
+        if (std::filesystem::remove(_db_file_path, remove_err)) return openDB();
+        return remove_err.value();
+    }
+
+    bool DBManager::_isValidErrorPos(const int error_pref_)
+    {
+        return error_pref_ < static_cast<int>(ErrorPrefix::LAST_ENUM) && error_pref_ >= 0;
+    }
+
+    int DBManager::_execute(const std::string& sql_)
+    {
+        Table tbl;
+        // 残りのsql文
+        std::string current_sql = sql_;
+        // sql文を全て実行する。
+        while (!current_sql.empty()) {
+            if (const int err = this->_usePlaceholderUniSql(current_sql, tbl, nullptr, nullptr, current_sql);
+                err != 0) {
+                // 最後の文に到達した場合は処理を終了する。
+                if (getErrorPos(err) == ErrorPrefix::END_OF_STATEMENT)
+                    break;
+                return err;
+            }
+        }
+        return 0;
+    }
+
+    // ReSharper disable once CppPassValueParameterByConstReference
+    int DBManager::_usePlaceholderUniSql(std::string sql_ /* c_str()による未定義動作を回避するためにコピー */, Table& result_table_, int (*binder_)(void*, sqlite3_stmt*), // NOLINT(performance-unnecessary-value-param)
+                                         void* binder_arg_, std::string& sql_remaining_)
+    {
+        std::lock_guard lock(this->_mtx);
+        if (_db == nullptr) { return getPrefixedErrorCode(0, ErrorPrefix::DB_NOT_OPEN); }
         sqlite3_stmt* tmp_stmt;
+        const char* tmp;
         // sqlを準備する。
-        if (const int prepare_err = sqlite3_prepare_v2(_manager->_db.get(), sql_.c_str(), static_cast<int>(sql_.size()),
-                                                       &tmp_stmt, nullptr);
+        if (const int prepare_err = sqlite3_prepare_v2(this->_db.get(), sql_.c_str(), -1,
+                                                       &tmp_stmt, &tmp);
             prepare_err != SQLITE_OK) { return getPrefixedErrorCode(prepare_err, ErrorPrefix::PREPARE_SQL_ERROR); }
-        const std::unique_ptr<sqlite3_stmt,sqliteDeleter::StatementFinalizer> stmt(tmp_stmt, sqliteDeleter::StatementFinalizer());
-        // placeholderと値を紐づける。
-        if (const int binder_err = binder_(binder_arg_, stmt.get()); binder_err != SQLITE_OK) { return binder_err; }
+        // sqlが準備できなかった場合には終了する。(正常終了)
+        if (tmp_stmt == nullptr) { return getPrefixedErrorCode(0, ErrorPrefix::END_OF_STATEMENT); }
+        sql_remaining_ = std::string(tmp);
+        const std::unique_ptr<sqlite3_stmt, sqliteDeleter::StatementFinalizer> stmt(
+            tmp_stmt, sqliteDeleter::StatementFinalizer());
+        if (binder_ != nullptr) {
+            // placeholderと値を紐づける。
+            if (const int binder_err = binder_(binder_arg_, stmt.get()); binder_err != SQLITE_OK) { return binder_err; }
+        }
+        const auto tmp_query_str_c_style = sqlite3ExpandedSqlWrapper(stmt.get());
+        const std::string current_query_string = tmp_query_str_c_style.get();
+        const auto start_query_at = std::chrono::high_resolution_clock::now();
+        const int before_changes = sqlite3_total_changes(_db.get());
         // sqlを実行
         int step_status = sqlite3_step(stmt.get());
         // エラーが発生しておらず、select文であれば、データをクリアする。
@@ -132,8 +207,11 @@ namespace core::db {
         }
         if (step_status != SQLITE_ROW) {
             if (step_status != SQLITE_DONE) {
+                _queryLogger(start_query_at, current_query_string, false, false, 0);
                 return getPrefixedErrorCode(step_status, ErrorPrefix::STEP_ERROR);
             }
+            const int after_changes = sqlite3_total_changes(_db.get());
+            _queryLogger(start_query_at, current_query_string, true, false, after_changes - before_changes);
             return SQLITE_OK;
         }
         // 取得した行をTableに格納する。
@@ -176,38 +254,9 @@ namespace core::db {
             // sqlを実行
             step_status = sqlite3_step(stmt.get());
         }
+
+        _queryLogger(start_query_at, current_query_string, true, true, result_table_.size());
         return SQLITE_OK;
-    }
-
-    constexpr int prefix_base = 100000;
-
-    int DBManager::getErrorCode(const int error_code_) { return error_code_ % prefix_base; }
-
-    DBManager::ErrorPrefix DBManager::getErrorPos(const int error_code_)
-    {
-        int err_pref = std::abs(error_code_) / prefix_base;
-        if (!_isValidErrorPos(err_pref)) err_pref = 0;
-        return static_cast<ErrorPrefix>(err_pref);
-    }
-
-    int DBManager::getPrefixedErrorCode(const int error_code_, ErrorPrefix prefix_)
-    {
-        return error_code_ + static_cast<int>(prefix_) * prefix_base;
-    }
-
-    int DBManager::ReinitializeDB()
-    {
-        if (_manager != nullptr && _manager->_db != nullptr) {
-            _manager->_closeDB();
-        }
-        std::error_code remove_err;
-        if (std::filesystem::remove(_db_file_path, remove_err)) return openDB();
-        return remove_err.value();
-    }
-
-    bool DBManager::_isValidErrorPos(const int error_pref_)
-    {
-        return error_pref_ < static_cast<int>(ErrorPrefix::LAST_ENUM) && error_pref_ >= 0;
     }
 
     int DBManager::_openDB(const std::string& db_file_)
@@ -219,26 +268,50 @@ namespace core::db {
                 return getPrefixedErrorCode(open_db_err, ErrorPrefix::OPEN_DB_ERROR);
             }
             this->_db.reset(tmp_db);
-            const int execute_err = sqlite3_exec(
-                this->_db.get(), std::string(F_OPEN_DB_PREPROC_SQL, SIZE_OPEN_DB_PREPROC_SQL).c_str(), nullptr,
-                nullptr, nullptr);
-            if (execute_err != SQLITE_OK) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
+            if (const int execute_err = _execute(std::string(F_OPEN_DB_PREPROC_SQL, SIZE_OPEN_DB_PREPROC_SQL));
+                execute_err != SQLITE_OK) { return getPrefixedErrorCode(execute_err, ErrorPrefix::EXECUTE_ERROR); }
         }
         return SQLITE_OK;
     }
 
-    void DBManager::_closeDB() { this->_db = nullptr; }
-
-    int DBManager::_initializeDB() const
+    void DBManager::_closeDB()
     {
-        const int sqlite_err = sqlite3_exec(
-            this->_db.get(),
-            std::string(F_INITIALIZE_DB_SQL, SIZE_INITIALIZE_DB_SQL).c_str(),
-            nullptr,
-            nullptr,
-            nullptr
+        std::lock_guard lock(this->_mtx);
+        this->_db = nullptr;
+    }
+
+    int DBManager::_initializeDB()
+    {
+        return _execute(
+            std::string(F_INITIALIZE_DB_SQL, SIZE_INITIALIZE_DB_SQL)
         );
-        return sqlite_err;
+    }
+
+    const std::regex front_gap_pattern{"^\\s+"};
+
+    void DBManager::_queryLogger(const std::chrono::time_point<std::chrono::high_resolution_clock> start_query_at_,
+                                 const std::string& sql_,const bool success_,const bool is_selected,const int rows_count_)
+    {
+        const auto end_query_at = std::chrono::high_resolution_clock::now();
+        std::string normalized_sql = std::regex_replace(sql_, front_gap_pattern, "");
+        std::string summary{};
+        if (is_selected || rows_count_ > 0) {
+            summary = std::format("{} {} rows - ", is_selected ? "Selected": "Affected", rows_count_);
+        }
+        Logger::debug(
+            std::format(
+                "query:\n{}\n({} ms) {}{}.", normalized_sql,
+                std::chrono::duration<double, std::milli>(end_query_at - start_query_at_).count(),
+                summary,
+                success_ ? "ok": "failed"
+            ),
+            "DBManager");
+    }
+
+    std::unique_ptr<char, sqliteDeleter::SqliteStringDeleter> DBManager::sqlite3ExpandedSqlWrapper(sqlite3_stmt* stmt_)
+    {
+        char* value = sqlite3_expanded_sql(stmt_);
+        return {value, sqliteDeleter::SqliteStringDeleter()};
     }
 
     DatabaseTable::DatabaseTable(std::vector<std::string> column_names_, std::string table_name_):
@@ -247,11 +320,10 @@ namespace core::db {
     {
     }
 
-    int DatabaseTable::execute(const std::string& sql_, std::vector<ColValue> placeholder_value_)
+    int DatabaseTable::usePlaceholderUniSql(const std::string& sql_, std::vector<ColValue> placeholder_value_,
+                                            std::string& sql_remaining_)
     {
-        if (const int err = DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_); err !=
-            SQLITE_OK) { return err; }
-        return SQLITE_OK;
+        return DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_, sql_remaining_);
     }
 
     int DatabaseTable::selectRecords() { return selectRecords("", {}); }
@@ -268,7 +340,8 @@ namespace core::db {
         if (where_clause_.empty())
             sql = std::format("SELECT {} FROM {};", columns, _table_name);
         else sql = std::format("SELECT {} FROM {} WHERE {};", columns, _table_name, where_clause_);
-        const int ret_val = execute(sql, placeholder_value_);
+        std::string unused_string;
+        const int ret_val = usePlaceholderUniSql(sql, placeholder_value_, unused_string);
         _mapper();
         return ret_val;
     }
