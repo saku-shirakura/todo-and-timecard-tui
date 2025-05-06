@@ -158,12 +158,13 @@ namespace core::db {
 
     int DBManager::_execute(const std::string& sql_)
     {
+        std::lock_guard lock(this->_interface_mtx);
         Table tbl;
         // 残りのsql文
         std::string current_sql = sql_;
         // sql文を全て実行する。
         while (!current_sql.empty()) {
-            if (const int err = this->_usePlaceholderUniSql(current_sql, tbl, nullptr, nullptr, current_sql);
+            if (const int err = this->_usePlaceholderUniSqlInternal(current_sql, tbl, nullptr, nullptr, current_sql);
                 err != 0) {
                 // 最後の文に到達した場合は処理を終了する。
                 if (getErrorPos(err) == ErrorPrefix::END_OF_STATEMENT)
@@ -174,11 +175,18 @@ namespace core::db {
         return 0;
     }
 
+    int DBManager::_usePlaceholderUniSql(const std::string& sql_, Table& result_table_,
+        int(* binder_)(void*, sqlite3_stmt*), void* binder_arg_, std::string& sql_remaining_)
+    {
+        std::lock_guard lock(this->_interface_mtx);
+        return _usePlaceholderUniSqlInternal(sql_, result_table_, binder_, binder_arg_, sql_remaining_);
+    }
+
     // ReSharper disable once CppPassValueParameterByConstReference
-    int DBManager::_usePlaceholderUniSql(std::string sql_ /* c_str()による未定義動作を回避するためにコピー */, Table& result_table_, int (*binder_)(void*, sqlite3_stmt*), // NOLINT(performance-unnecessary-value-param)
+    int DBManager::_usePlaceholderUniSqlInternal(std::string sql_ /* c_str()による未定義動作を回避するためにコピー */, Table& result_table_, int (*binder_)(void*, sqlite3_stmt*), // NOLINT(performance-unnecessary-value-param)
                                          void* binder_arg_, std::string& sql_remaining_)
     {
-        std::lock_guard lock(this->_mtx);
+        std::lock_guard lock(this->_internal_mtx);
         if (_db == nullptr) { return getPrefixedErrorCode(0, ErrorPrefix::DB_NOT_OPEN); }
         sqlite3_stmt* tmp_stmt;
         const char* tmp;
@@ -276,7 +284,7 @@ namespace core::db {
 
     void DBManager::_closeDB()
     {
-        std::lock_guard lock(this->_mtx);
+        std::scoped_lock lock(this->_interface_mtx, this->_internal_mtx);
         this->_db = nullptr;
     }
 

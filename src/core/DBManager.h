@@ -228,7 +228,16 @@ namespace core::db {
          * @param sql_remaining_ sql_のうち実行されなかった部分の文字列
          * @return 戻り値については、openDB()を参照してください。
          */
-        int _usePlaceholderUniSql(std::string sql_,
+        int _usePlaceholderUniSql(const std::string& sql_,
+                                  Table& result_table_,
+                                  int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                  std::string& sql_remaining_);
+
+        /**
+         * @brief この関数は、_usePlaceholderUniSql()のロジックです。_interface_mtxをロックしない場合には、呼び出さないでください。
+         * @note 引数や戻り値の詳細は_usePlaceholderUniSql()を確認してください。
+         */
+        int _usePlaceholderUniSqlInternal(std::string sql_,
                                   Table& result_table_,
                                   int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
                                   std::string& sql_remaining_);
@@ -271,7 +280,8 @@ namespace core::db {
         std::unique_ptr<sqlite3, sqliteDeleter::DatabaseCloser> _db{nullptr, sqliteDeleter::DatabaseCloser()};
         static std::unique_ptr<DBManager> _manager;
         static std::filesystem::path _db_file_path;
-        std::mutex _mtx;
+        std::mutex _internal_mtx;
+        std::mutex _interface_mtx;
     };
 
     class DatabaseTable {
