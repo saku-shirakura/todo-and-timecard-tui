@@ -56,19 +56,11 @@ namespace core::db {
 
     namespace sqliteDeleter {
         struct DatabaseCloser {
-            void operator()(sqlite3* db_) const
-            {
-                if (db_ != nullptr)
-                    sqlite3_close_v2(db_);
-            }
+            void operator()(sqlite3* db_) const;
         };
 
         struct StatementFinalizer {
-            void operator()(sqlite3_stmt* stmt_) const
-            {
-                if (stmt_ != nullptr)
-                    sqlite3_finalize(stmt_);
-            }
+            void operator()(sqlite3_stmt* stmt_) const;
         };
     }
 

@@ -37,6 +37,18 @@
 #include "../utilities/Utilities.h"
 
 namespace core::db {
+    void sqliteDeleter::DatabaseCloser::operator()(sqlite3* db_) const
+    {
+        if (db_ != nullptr)
+            sqlite3_close_v2(db_);
+    }
+
+    void sqliteDeleter::StatementFinalizer::operator()(sqlite3_stmt* stmt_) const
+    {
+        if (stmt_ != nullptr)
+            sqlite3_finalize(stmt_);
+    }
+
     double getDouble(const ColValue& value_, const double default_value_)
     {
         if (value_.first == ColType::T_REAL) return std::get<double>(value_.second);
