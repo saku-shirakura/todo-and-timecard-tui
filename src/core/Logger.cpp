@@ -32,10 +32,11 @@ void Logger::initialize()
     _initialized = true;
 }
 
-void Logger::log(const std::string& msg_, const std::string& log_level_) noexcept
+void Logger::log(const std::string& msg_, const std::string& log_level_, const std::string& reporter_) noexcept
 {
     try {
         std::lock_guard lock(_mtx);
+        if (_log_level_map.contains(log_level_) && _log_level_map.at(log_level_) < log_level) return;
         if (!_ensureOpenLogFile()) {
             _success_prev_logging = false;
             return;
@@ -43,32 +44,57 @@ void Logger::log(const std::string& msg_, const std::string& log_level_) noexcep
         std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
         _out << std::format("{:%c}\t", time);
         if (!log_level_.empty()) _out << "[" << log_level_ << "] ";
+        if (!reporter_.empty()) _out << "<Reporter: " << reporter_ << "> ";
         _out << msg_ << "\n";
     }
-    catch (std::exception& _) {
-        _success_prev_logging = false;
-    }
+    catch (std::exception& _) { _success_prev_logging = false; }
 }
 
-void Logger::debug(const std::string& msg_) noexcept { log(msg_, "DEBUG"); }
+void Logger::debug(const std::string& msg_, const std::string& reporter_) noexcept { log(msg_, "DEBUG", reporter_); }
 
-void Logger::info(const std::string& msg_) noexcept { log(msg_, "INFO"); }
+void Logger::info(const std::string& msg_, const std::string& reporter_) noexcept { log(msg_, "INFO", reporter_); }
 
-void Logger::warning(const std::string& msg_) noexcept { log(msg_, "WARNING"); }
+void Logger::warning(const std::string& msg_, const std::string& reporter_) noexcept
+{
+    log(msg_, "WARNING", reporter_);
+}
 
-void Logger::error(const std::string& msg_) noexcept { log(msg_, "ERROR"); }
+void Logger::error(const std::string& msg_, const std::string& reporter_) noexcept { log(msg_, "ERROR", reporter_); }
 
-void Logger::critical(const std::string& msg_) noexcept { log(msg_, "CRITICAL"); }
+void Logger::critical(const std::string& msg_, const std::string& reporter_) noexcept
+{
+    log(msg_, "CRITICAL", reporter_);
+}
+
+void Logger::note(const std::string& msg_, const std::string& reporter_) noexcept
+{
+    log(msg_, "NOTE", reporter_);
+}
 
 void Logger::sqliteLoggingCallback([[maybe_unused]] void* pArg, int iErrCode, const char* zMsg) noexcept
 {
-    error(std::format("From Sqlite Logger: ({}) {}", iErrCode, std::string(zMsg)));
+    error(std::format("({}) {}", iErrCode, std::string(zMsg)), "SQLite");
 }
 
-bool Logger::isSuccessPrevLogging()
+bool Logger::isSuccessPrevLogging() { return _success_prev_logging; }
+
+void Logger::updateLogLevelLabel(const std::string& label_, LogLevel level_)
 {
-    return _success_prev_logging;
+    if (label_.empty()) return;
+    if (_log_level_map.contains(label_)) { _log_level_map.at(label_) = level_; }
+    else { _log_level_map.try_emplace(label_, level_); }
 }
+
+Logger::LogLevel Logger::log_level = LogLevel::INFO;
+
+std::unordered_map<std::string, Logger::LogLevel> Logger::_log_level_map{
+    {"DEBUG", LogLevel::DEBUG},
+    {"INFO", LogLevel::INFO},
+    {"WARNING", LogLevel::WARNING},
+    {"ERROR", LogLevel::ERROR},
+    {"CRITICAL", LogLevel::CRITICAL},
+    {"NOTE", LogLevel::INFO}
+};
 
 void Logger::_openLogFile()
 {

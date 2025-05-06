@@ -36,6 +36,7 @@
 #include <mutex>
 #include <sqlite3.h>
 #include <string>
+#include <unordered_map>
 
 #include "../utilities/Utilities.h"
 
@@ -49,26 +50,44 @@ class Logger {
 public:
     static void initialize();
 
+    enum class LogLevel {
+        DEBUG,
+        INFO,
+        WARNING,
+        ERROR,
+        CRITICAL
+    };
+
     /**
      * @brief 時刻とmsgからなるログメッセージをログファイルに出力します。
      * @note ファイルが開けなかった場合、処理は行われません。
      * @param msg_ ログメッセージ
      * @param log_level_ ログレベル(任意) 指定しない場合省略されます。
+     * @param reporter_
      */
-    static void log(const std::string& msg_, const std::string& log_level_ = "") noexcept;
+    static void log(const std::string& msg_, const std::string& log_level_ = "", const std::string& reporter_ = "") noexcept;
 
+    // 基本ログレベル
+    static void debug(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
+    static void info(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
+    static void warning(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
+    static void error(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
+    static void critical(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
 
-    static void debug(const std::string& msg_) noexcept;
-    static void info(const std::string& msg_) noexcept;
-    static void warning(const std::string& msg_) noexcept;
-    static void error(const std::string& msg_) noexcept;
-    static void critical(const std::string& msg_) noexcept;
+    // LogLevel::INFO
+    static void note(const std::string& msg_, const std::string& reporter_ = "Anonymous") noexcept;
 
+    // LogLevel::ERROR
     static void sqliteLoggingCallback(void* pArg, int iErrCode, const char* zMsg) noexcept;
 
     static bool isSuccessPrevLogging();
 
+    static void updateLogLevelLabel(const std::string& label_, LogLevel level_);
+
+    static LogLevel log_level;
 private:
+    static std::unordered_map<std::string, LogLevel> _log_level_map;
+
     static void _openLogFile();
 
     static bool _ensureOpenLogFile();
