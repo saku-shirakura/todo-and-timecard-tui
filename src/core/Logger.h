@@ -53,11 +53,6 @@ public:
      */
     static void initialize();
 
-    /**
-     * @brief ログローテーションを実行します。
-     */
-    static void rotate();
-
     enum class LogLevel {
         DEBUG,
         INFO,
@@ -92,10 +87,16 @@ public:
 
     static void updateLogLevelLabel(const std::string& label_, LogLevel level_);
 
+    static void setLogFilePath(const std::string& log_file_path_);
+
     static LogLevel log_level;
 private:
     static std::unordered_map<std::string, LogLevel> _log_level_map;
 
+    /**
+     * @brief ログローテーションを実行します。
+     */
+    static void _rotate();
     static void _openLogFile();
 
     static bool _ensureOpenLogFile();

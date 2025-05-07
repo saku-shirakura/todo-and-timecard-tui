@@ -35,20 +35,6 @@ void Logger::initialize()
     _initialized = true;
 }
 
-void Logger::rotate()
-{
-    std::error_code err;
-    if (!_out.is_open() || _out.fail() || _out.tellp() < max_log_size) { return; }
-    _out.close();
-    std::filesystem::remove(_getRotatePath(rotate_count), err);
-    for (int i = rotate_count - 1; i >= 1; i--) {
-        if (std::filesystem::exists(_getRotatePath(i), err)) {
-            std::filesystem::rename(_getRotatePath(i), _getRotatePath(i + 1), err);
-        }
-    }
-    std::filesystem::rename(_log_file_path, _getRotatePath(1), err);
-    _openLogFile();
-}
 
 void Logger::log(const std::string& msg_, const std::string& log_level_, const std::string& reporter_) noexcept
 {
@@ -59,7 +45,7 @@ void Logger::log(const std::string& msg_, const std::string& log_level_, const s
             _success_prev_logging = false;
             return;
         }
-        rotate();
+        _rotate();
         std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
         _out << std::format("{:%c}\t", time);
         if (!log_level_.empty()) _out << "[" << log_level_ << "] ";
@@ -101,6 +87,14 @@ void Logger::updateLogLevelLabel(const std::string& label_, LogLevel level_)
     else { _log_level_map.try_emplace(label_, level_); }
 }
 
+void Logger::setLogFilePath(const std::string& log_file_path_)
+{
+    std::lock_guard lock(_mtx);
+    if (_out.is_open())
+        _out.close();
+    _log_file_path = log_file_path_;
+}
+
 Logger::LogLevel Logger::log_level = LogLevel::INFO;
 
 std::unordered_map<std::string, Logger::LogLevel> Logger::_log_level_map{
@@ -111,6 +105,21 @@ std::unordered_map<std::string, Logger::LogLevel> Logger::_log_level_map{
     {"CRITICAL", LogLevel::CRITICAL},
     {"NOTE", LogLevel::INFO}
 };
+
+void Logger::_rotate()
+{
+    std::error_code err;
+    if (!_out.is_open() || _out.fail() || _out.tellp() < max_log_size) { return; }
+    _out.close();
+    std::filesystem::remove(_getRotatePath(rotate_count), err);
+    for (int i = rotate_count - 1; i >= 1; i--) {
+        if (std::filesystem::exists(_getRotatePath(i), err)) {
+            std::filesystem::rename(_getRotatePath(i), _getRotatePath(i + 1), err);
+        }
+    }
+    std::filesystem::rename(_log_file_path, _getRotatePath(1), err);
+    _openLogFile();
+}
 
 void Logger::_openLogFile() { _out.open(_log_file_path, std::ios::out | std::ios::in | std::ios::app); }
 
