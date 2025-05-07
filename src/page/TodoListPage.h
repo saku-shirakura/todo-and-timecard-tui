@@ -35,16 +35,48 @@
 #include <vector>
 
 #include "PageBase.h"
+#include "../core/DBManager.h"
 
 namespace pages {
     class TodoListPage final : PageBase {
     public:
         void show();
 
+        void updateTaskList();
+
+        void resetTaskList();
+
+        void nextTaskList();
+
+        void prevTaskList();
+
     private:
+        void _updateTaskItemCount();
+
+        bool _eventHandler(ftxui::Event event_);
+
+        int _filterSelectedStatusId() const;
+
         int _current_task_filter_selected{0};
 
+        void printConsole(const std::string& str_);
+
+        long long _tasks_count = 0;
+        int _task_page = 0;
+        int _tasks_per_page = 20;
+
+        long long _current_parent_id{0};
+
+        std::string _console_text{"test1\ntest2\ntest3\ntest4\ntest5\ntest6\ntest7\n"};
+
+        std::vector<std::string> _console_history{};
+
+        std::vector<std::string> _task_labels{};
+        core::db::TaskTable _task_items;
+        int _selected_task = 0;
+
         static const std::vector<std::string> TASK_FILTER_MODE;
+        static const std::unordered_map<std::string, core::db::Status> FILTER_LABEL_STATUS_MAP;
     };
 } // pages
 
