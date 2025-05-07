@@ -433,6 +433,7 @@ namespace core::db {
 
     void TaskTable::_mapper()
     {
+        _keys.clear();
         _table.clear();
         for (auto i : _data) {
             _keys.emplace_back(getLongLong(i.at("id")));
@@ -491,6 +492,7 @@ namespace core::db {
 
     void ScheduleTable::_mapper()
     {
+        _keys.clear();
         _table.clear();
         for (auto i : _data) {
             _keys.emplace_back(getLongLong(i.at("id")));
@@ -531,6 +533,7 @@ namespace core::db {
 
     void WorktimeTable::_mapper()
     {
+        _keys.clear();
         _table.clear();
         for (auto i : _data) {
             _keys.emplace_back(getLongLong(i.at("id")));
