@@ -40,6 +40,9 @@
 #include <sqlite3.h>
 #include <vector>
 
+/**
+ * @note getDouble(), getLongLong(), getString()等の仕様によりNULLは、0, 空文字などとして扱われます。
+ */
 namespace core::db {
     enum class ColType {
         T_REAL,
