@@ -404,25 +404,6 @@ namespace core::db {
     {
     }
 
-    Status::Status(const long long id_, std::string label_): id(id_), label(std::move(label_))
-    {
-    }
-
-    StatusTable::StatusTable(): DatabaseTable({"id", "label"}, "status")
-    {
-    }
-
-    const std::unordered_map<long long, Status>& StatusTable::getTable() { return _table; }
-
-    void StatusTable::_mapper()
-    {
-        _table.clear();
-        for (auto i : _data) {
-            _table.try_emplace(getLongLong(i.at("id")),
-                               Status({getLongLong(i.at("id")), getString(i.at("label"))}));
-        }
-    }
-
 
     Task::Task(const long long id_, const long long parent_id_, std::string name_, std::string detail_,
                const long long status_id_, std::string created_at_,
@@ -447,10 +428,14 @@ namespace core::db {
 
     const std::unordered_map<long long, Task>& TaskTable::getTable() { return _table; }
 
+    const std::vector<long long>& TaskTable::getKeys()
+    {return _keys;}
+
     void TaskTable::_mapper()
     {
         _table.clear();
         for (auto i : _data) {
+            _keys.emplace_back(getLongLong(i.at("id")));
             _table.try_emplace(
                 getLongLong(i.at("id")),
                 Task({
@@ -499,10 +484,16 @@ namespace core::db {
 
     const std::unordered_map<long long, Schedule>& ScheduleTable::getTable() { return _table; }
 
+    std::vector<long long>& ScheduleTable::getKeys()
+    {
+        return _keys;
+    }
+
     void ScheduleTable::_mapper()
     {
         _table.clear();
         for (auto i : _data) {
+            _keys.emplace_back(getLongLong(i.at("id")));
             _table.try_emplace(
                 getLongLong(i.at("id")),
                 Schedule({
@@ -533,10 +524,16 @@ namespace core::db {
 
     const std::unordered_map<long long, Worktime>& WorktimeTable::getTable() { return _table; }
 
+    std::vector<long long>& WorktimeTable::getKeys()
+    {
+        return _keys;
+    }
+
     void WorktimeTable::_mapper()
     {
         _table.clear();
         for (auto i : _data) {
+            _keys.emplace_back(getLongLong(i.at("id")));
             _table.try_emplace(
                 getLongLong(i.at("id")),
                 Worktime({

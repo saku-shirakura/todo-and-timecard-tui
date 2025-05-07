@@ -32,36 +32,12 @@
 #ifndef DBMANAGER_H
 #define DBMANAGER_H
 #include <filesystem>
-#include <iosfwd>
-#include <iosfwd>
-#include <iosfwd>
-#include <iosfwd>
-#include <iosfwd>
-#include <iosfwd>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <sqlite3.h>
-#include <utility>
-#include <utility>
-#include <utility>
-#include <utility>
-#include <utility>
-#include <utility>
-#include <variant>
-#include <variant>
-#include <variant>
-#include <variant>
-#include <variant>
-#include <variant>
-#include <vector>
-#include <vector>
-#include <vector>
-#include <vector>
-#include <vector>
-#include <vector>
 #include <vector>
 
 namespace core::db {
@@ -262,9 +238,9 @@ namespace core::db {
          * @note 引数や戻り値の詳細は_usePlaceholderUniSql()を確認してください。
          */
         int _usePlaceholderUniSqlInternal(std::string sql_,
-                                  Table& result_table_,
-                                  int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
-                                  std::string& sql_remaining_);
+                                          Table& result_table_,
+                                          int (*binder_)(void*, sqlite3_stmt*), void* binder_arg_,
+                                          std::string& sql_remaining_);
 
         /**
          * @brief データベース`db_file_`を開きます。
@@ -356,7 +332,8 @@ namespace core::db {
          * @param offset_ OFFSET句の数値
          * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
-        int selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_, const std::string& order_by_, int limit_, int offset_);
+        int selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_,
+                          const std::string& order_by_, int limit_, int offset_);
 
         /**
          * @brief 生のテーブルを取得します。
@@ -398,26 +375,11 @@ namespace core::db {
         Table _data;
     };
 
-    class Status {
-    public:
-        const long long id;
-        const std::string label;
-
-        friend class StatusTable;
-
-    private:
-        Status(long long id_, std::string label_);
-    };
-
-    class StatusTable final : public DatabaseTable {
-    public:
-        StatusTable();
-
-        const std::unordered_map<long long, Status>& getTable();
-
-    private:
-        void _mapper() override;
-        std::unordered_map<long long, Status> _table;
+    enum class Status {
+        Progress = 1,
+        Complete = 2,
+        Incomplete = 3,
+        Not_Planned = 4,
     };
 
     class Task {
@@ -448,11 +410,13 @@ namespace core::db {
         TaskTable();
 
         const std::unordered_map<long long, Task>& getTable();
+        const std::vector<long long>& getKeys();
 
     private:
         void _mapper() override;
 
         std::unordered_map<long long, Task> _table;
+        std::vector<long long> _keys;
     };
 
     class Worktime {
@@ -485,10 +449,13 @@ namespace core::db {
 
         const std::unordered_map<long long, Worktime>& getTable();
 
+        std::vector<long long>& getKeys();
+
     private:
         void _mapper() override;
 
         std::unordered_map<long long, Worktime> _table;
+        std::vector<long long> _keys;
     };
 
     class Schedule {
@@ -518,10 +485,13 @@ namespace core::db {
 
         const std::unordered_map<long long, Schedule>& getTable();
 
+        std::vector<long long> &getKeys();
+
     private:
         void _mapper() override;
 
         std::unordered_map<long long, Schedule> _table;
+        std::vector<long long> _keys;
     };
 } // core
 
