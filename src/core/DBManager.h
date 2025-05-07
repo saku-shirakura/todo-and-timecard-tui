@@ -108,7 +108,7 @@ namespace core::db {
          * @brief デフォルトのデータベースファイルのパスを変更します。この際、接続は閉じられます。
          * @param file_path_ 接続対象データベースのパス
          */
-        static void setDBFile(const std::string& file_path_);
+        static bool setDBFile(const std::string& file_path_);
 
         /**
          * @brief DBManager全体でのデータベース接続を確立します。

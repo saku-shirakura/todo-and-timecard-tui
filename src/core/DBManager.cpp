@@ -75,10 +75,16 @@ namespace core::db {
         return default_value_;
     }
 
-    void DBManager::setDBFile(const std::string& file_path_)
+    bool DBManager::setDBFile(const std::string& file_path_)
     {
-        _db_file_path = file_path_;
-        _manager->_closeDB();
+        std::error_code ec;
+        std::filesystem::path tmp_path = std::filesystem::absolute(file_path_, ec);
+        if (ec)
+            return false;
+        _db_file_path = std::move(tmp_path);
+        if (_manager != nullptr)
+            _manager->_closeDB();
+        return true;
     }
 
     int DBManager::openDB()
@@ -285,7 +291,7 @@ namespace core::db {
 
     void DBManager::_closeDB()
     {
-        std::scoped_lock lock(this->_interface_mtx, this->_internal_mtx);
+        std::scoped_lock lock{this->_interface_mtx, this->_internal_mtx};
         this->_db = nullptr;
     }
 
@@ -428,8 +434,7 @@ namespace core::db {
 
     const std::unordered_map<long long, Task>& TaskTable::getTable() { return _table; }
 
-    const std::vector<long long>& TaskTable::getKeys()
-    {return _keys;}
+    const std::vector<long long>& TaskTable::getKeys() { return _keys; }
 
     void TaskTable::_mapper()
     {
@@ -485,10 +490,7 @@ namespace core::db {
 
     const std::unordered_map<long long, Schedule>& ScheduleTable::getTable() { return _table; }
 
-    std::vector<long long>& ScheduleTable::getKeys()
-    {
-        return _keys;
-    }
+    std::vector<long long>& ScheduleTable::getKeys() { return _keys; }
 
     void ScheduleTable::_mapper()
     {
@@ -526,10 +528,7 @@ namespace core::db {
 
     const std::unordered_map<long long, Worktime>& WorktimeTable::getTable() { return _table; }
 
-    std::vector<long long>& WorktimeTable::getKeys()
-    {
-        return _keys;
-    }
+    std::vector<long long>& WorktimeTable::getKeys() { return _keys; }
 
     void WorktimeTable::_mapper()
     {
