@@ -2,14 +2,14 @@ DROP TRIGGER IF EXISTS trigger_task_updated_at;
 DROP TRIGGER IF EXISTS trigger_worktime_updated_at;
 DROP TRIGGER IF EXISTS trigger_schedule_updated_at;
 
-DROP TABLE IF EXISTS status;
 DROP TABLE IF EXISTS task;
+DROP TABLE IF EXISTS status;
 DROP TABLE IF EXISTS worktime;
 DROP TABLE IF EXISTS schedule;
 
 CREATE TABLE status
 (
-    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    id    INTEGER PRIMARY KEY,
     label TEXT NOT NULL UNIQUE
 );
 
@@ -66,11 +66,11 @@ BEGIN
     UPDATE schedule SET updated_at = DATETIME('now', 'utc') WHERE rowid == NEW.rowid;
 end;
 
-INSERT INTO status(label)
-VALUES ('Progress'),
-       ('Complete'),
-       ('Incomplete'),
-       ('Not planned');
+INSERT INTO status(id, label)
+VALUES (1, 'Progress'),
+       (2, 'Complete'),
+       (3, 'Incomplete'),
+       (4, 'Not planned');
 
 CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);
 CREATE INDEX idx_worktime_time_per_task ON worktime (task_id, starting_time, finishing_time);
