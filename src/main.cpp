@@ -21,9 +21,22 @@
 // SOFTWARE.
 
 
+#include "core/Logger.h"
 #include "core/TodoAndTimeCardApp.h"
 
-int main() {
-    TodoAndTimeCardApp app;
-    return app.execute();
+int main()
+{
+#ifndef NDEBUG
+    Logger::setLogFilePath("dev.log");
+    if (!core::db::DBManager::setDBFile("dev.sqlite")) {
+        Logger::error("Failed to change database file path.", "main");
+    }
+    Logger::log_level = Logger::LogLevel::DEBUG;
+#endif
+    Logger::initialize();
+    Logger::info("start application.", "main");
+    core::TodoAndTimeCardApp app;
+    app.execute();
+    Logger::info("finish application.", "main");
+    return 0;
 }

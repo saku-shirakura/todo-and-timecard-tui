@@ -132,7 +132,7 @@ bool Logger::_ensureOpenLogFile()
 
 std::filesystem::path Logger::_getRotatePath(const size_t rotateNumber)
 {
-    return _log_file_path.parent_path() / (_log_file_path.filename().string() + "." + std::to_string(rotateNumber));
+    return _log_file_path.parent_path() / (_log_file_path.stem().string() + "." + std::to_string(rotateNumber) +  _log_file_path.extension().string());
 }
 
 std::ofstream Logger::_out;

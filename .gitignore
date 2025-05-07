@@ -97,3 +97,4 @@ dev.sqlite
 .idea/dataSources.xml
 workspace/*
 !workspace/README.MD
+*.log

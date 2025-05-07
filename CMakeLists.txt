@@ -28,7 +28,7 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/resource.h
         src/core/Logger.cpp
         src/core/Logger.h
-        src/lib/git-tui/scroller.h
+        src/lib/git-tui/scroller.hpp
         src/lib/git-tui/scroller.cpp
 )
 
