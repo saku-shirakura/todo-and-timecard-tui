@@ -95,3 +95,5 @@ Temporary Items
 .apdisk
 dev.sqlite
 .idea/dataSources.xml
+workspace/*
+!workspace/README.MD
