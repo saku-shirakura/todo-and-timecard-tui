@@ -43,8 +43,7 @@ namespace components {
         std::string getText();
 
     private:
-        std::string _console_text{};
-        std::vector<std::string> _console_history{};
+        std::string _console_text{"Console: Hello!"};
     };
 
     ftxui::Component Console(std::shared_ptr<ConsoleData> console_data_);

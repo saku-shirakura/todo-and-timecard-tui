@@ -27,19 +27,14 @@ namespace components {
     public:
         explicit ConsoleBase(std::shared_ptr<ConsoleData> data_): _data(std::move(data_))
         {
-            auto console = ftxui::Scroller(
-                ftxui::Renderer([&] { return ftxui::paragraph(_data->getText()); })
-            );
+            auto console = ftxui::Renderer([&] { return ftxui::text(_data->getText()); });
             Add(std::move(console));
         }
 
         ftxui::Element OnRender() override
         {
             const ftxui::Element console_view = Render();
-            return window(
-                ftxui::text("console"),
-                console_view
-            );;
+            return console_view;
         }
 
     private:
@@ -48,14 +43,7 @@ namespace components {
 
     void ConsoleData::printConsole(const std::string& str_)
     {
-        _console_history.push_back(str_);
-        if (_console_history.size() > 20) { _console_history.erase(_console_history.begin()); }
-        _console_text = "";
-        for (size_t i = _console_history.size(); i > 0; i--) {
-            _console_text += _console_history.at(i - 1);
-            if (i != 1)
-                _console_text += "\n";
-        }
+        _console_text = "Console: " + str_;
     }
 
     std::string ConsoleData::getText() { return _console_text; }
