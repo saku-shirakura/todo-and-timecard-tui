@@ -68,8 +68,8 @@ end;
 
 INSERT INTO status(id, label)
 VALUES (1, 'Progress'),
-       (2, 'Complete'),
-       (3, 'Incomplete'),
+       (2, 'Incomplete'),
+       (3, 'Complete'),
        (4, 'Not planned');
 
 CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);

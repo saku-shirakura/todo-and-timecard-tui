@@ -380,8 +380,8 @@ namespace core::db {
 
     enum class Status {
         Progress = 1,
-        Complete = 2,
-        Incomplete = 3,
+        Incomplete = 2,
+        Complete = 3,
         Not_Planned = 4,
     };
 
