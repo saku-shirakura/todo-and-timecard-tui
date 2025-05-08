@@ -33,62 +33,77 @@
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <utility>
 
+#include "../components/custom_menu_entry.h"
 #include "../core/DBManager.h"
-#include "../lib/git-tui/scroller.hpp"
 
 namespace pages {
     void TodoListPage::show()
     {
+        const ftxui::Component page_container = ftxui::Container::Vertical({});
+        ftxui::ButtonOption prev_history_button_option = ftxui::ButtonOption::Ascii();
+
+        prev_history_button_option.label = "↑";
+        prev_history_button_option.on_click = [&] {
+            if (_history.empty()) return;
+            if (_history.size() > 1) { _history.pop(); }
+            _current_parent_id = _history.top();
+            resetTaskList();
+        };
+
+        const auto prev_history_button = ftxui::Button(prev_history_button_option);
+
         auto toggle = ftxui::MenuOption::Toggle();
         toggle.on_change = [&] { resetTaskList(); };
-        ftxui::Component task_filter_toggle = ftxui::Menu(&TASK_FILTER_MODE, &_current_task_filter_selected, toggle);
-        const ftxui::Component task_filter_container = ftxui::Container::Vertical({task_filter_toggle});
-        const ftxui::Component task_list = ftxui::Menu(&_task_labels, &_selected_task, {
-                                                           .on_change = [&] {
-                                                               if (
-                                                                   const size_t task_count = _task_items.getKeys().
-                                                                       size();
-                                                                   _selected_task >= task_count
-                                                               ) {
-                                                                   if (task_count == 0) { _selected_task = 0; }
-                                                                   else {
-                                                                       _selected_task = static_cast<int>(task_count) -
-                                                                           1;
-                                                                   }
-                                                               }
-                                                           },
-                                                           .on_enter = [&] {
-                                                               if (const auto keys = _task_items.getKeys();
-                                                                   _selected_task < keys.size()) {
-                                                                   _current_parent_id = _task_items.getTable().at(
-                                                                       keys.at(_selected_task)).id;
-                                                                   resetTaskList();
-                                                               }
-                                                           },
-                                                       });
-        task_filter_container->Add(task_list);
+        const ftxui::Component task_filter_toggle = ftxui::Menu(&TASK_FILTER_MODE, &_current_task_filter_selected,
+                                                                toggle);
 
-        const ftxui::Component console = ftxui::Scroller(
-            ftxui::Renderer([&] { return ftxui::paragraph(this->_console_text); })
-        );
+        const ftxui::Component console = components::Console(_console_data);
 
-        task_filter_container->Add(console);
+        ftxui::MenuOption task_list_option{};
+        task_list_option.entries = &_task_labels;
+        task_list_option.selected = &_selected_task;
+        task_list_option.focused_entry = &_focused_task;
+        task_list_option.on_change = [&] { this->_taskListOnChange(console); };
+        task_list_option.on_enter = [&] { this->_taskListOnEnter(); };
+        task_list_option.entries_option.transform = [&](const ftxui::EntryState& state) {
+            const auto keys = _task_items.getKeys();
+            if (_tasks_count <= 0 || state.index >= keys.size())
+                return components::customize::TodoListMenuEntryOptionTransform(state, core::db::Status::Not_Planned, true);
 
-        _renderer = Renderer(task_filter_container, [&] {
-            return vbox(
-                vbox(
-                    hbox(
-                        task_filter_toggle->Render(),
-                        ftxui::separator()
-                    ),
-                    ftxui::separator(),
-                    vbox(task_list->Render())
-                ) | ftxui::border,
-                window(ftxui::text("console"),
-                       console->Render()
-                )
+            const auto status = static_cast<core::db::Status>(
+                _task_items.getTable().at(keys.at(state.index)).status_id
             );
+            return components::customize::TodoListMenuEntryOptionTransform(state, status, false);
+        };
+
+        const ftxui::Component task_list = ftxui::Menu(task_list_option);
+
+        page_container->Add(prev_history_button);
+        page_container->Add(task_filter_toggle);
+        page_container->Add(task_list);
+        page_container->Add(console);
+
+        _renderer = Renderer(page_container, [&] {
+            return
+                vbox(
+                    vbox(
+                        hbox(
+                            prev_history_button->Render(),
+                            ftxui::text(" "),
+                            ftxui::text(this->_current_task_name)
+                        ),
+                        ftxui::separator(),
+                        hbox(
+                            task_filter_toggle->Render(),
+                            ftxui::separator()
+                        ),
+                        ftxui::separator(),
+                        task_list->Render()
+                    ) | ftxui::border,
+                    console->Render()
+                );
         });
 
         resetTaskList();
@@ -99,6 +114,16 @@ namespace pages {
     {
         std::vector<core::db::ColValue> placeholder_values{};
         std::string where_clause{};
+        if (const int err = _task_items.selectRecords("id=?", {
+                                                          {core::db::ColType::T_INTEGER, _current_parent_id}
+                                                      }); err != 0) {
+            _console_data->printConsole("Could not retrieve parent name.");
+            return;
+        }
+        if (_task_items.getTable().contains(_current_parent_id)) {
+            _current_task_name = _task_items.getTable().at(_current_parent_id).name;
+        }
+        else { _current_task_name = ""; }
         if (_current_task_filter_selected != 0) {
             where_clause = "status_id=? AND ";
             placeholder_values.emplace_back(core::db::ColType::T_INTEGER, _filterSelectedStatusId());
@@ -108,11 +133,12 @@ namespace pages {
             where_clause += "parent_id=?";
             placeholder_values.emplace_back(core::db::ColType::T_INTEGER, _current_parent_id);
         }
-        const int select_err = this->_task_items.selectRecords(where_clause, placeholder_values, "id ASC",
+        // タスクテーブルを最新のparent_idのものに更新する。
+        const int select_err = this->_task_items.selectRecords(where_clause, placeholder_values, "status_id, name ASC",
                                                                _tasks_per_page,
                                                                (_task_page - 1) * _tasks_per_page);
         if (select_err != 0) {
-            printConsole("Could not retrieve data.");
+            _console_data->printConsole("Could not retrieve data.");
             return;
         }
         _task_labels.clear();
@@ -124,6 +150,7 @@ namespace pages {
     void TodoListPage::resetTaskList()
     {
         _selected_task = 0;
+        _focused_task = 0;
         _task_page = 0;
         nextTaskList();
     }
@@ -141,6 +168,33 @@ namespace pages {
     {
         if (_task_page > 1) { _task_page--; }
         updateTaskList();
+    }
+
+    void TodoListPage::_taskListOnChange(const ftxui::Component& next_component_)
+    {
+        if (const size_t task_count = _task_items.getKeys().size();
+            _selected_task >= task_count) {
+            if (task_count == 0) {
+                _selected_task = 0;
+                _focused_task = 0;
+            }
+            else {
+                _selected_task = static_cast<int>(task_count) - 1;
+                _focused_task = static_cast<int>(task_count) - 1;
+                next_component_->TakeFocus();
+            }
+        }
+    }
+
+    void TodoListPage::_taskListOnEnter()
+    {
+        // 選択されたタスクが範囲内であれば、そのタスクに移動する。
+        if (const auto keys = _task_items.getKeys();
+            _selected_task < keys.size()) {
+            _current_parent_id = _task_items.getTable().at(_task_items.getKeys().at(_selected_task)).id;
+            _history.push(_current_parent_id);
+            resetTaskList();
+        }
     }
 
     void TodoListPage::_updateTaskItemCount()
@@ -176,26 +230,30 @@ namespace pages {
                 return 0;
             }, this, unused_str);
         if (counter_error != 0) {
-            printConsole("Error: Failed to count tasks.");
+            _console_data->printConsole("Error: Failed to count tasks.");
             return;
         }
         if (tmp_tbl.front().at("rows_count").first != core::db::ColType::T_INTEGER) {
-            printConsole("Error: An invalid type was returned when counting tasks.");
+            _console_data->printConsole("Error: An invalid type was returned when counting tasks.");
             return;
         }
         _tasks_count = std::get<long long>(tmp_tbl.front().at("rows_count").second);
     }
 
-    bool TodoListPage::_eventHandler(ftxui::Event event_)
+    bool TodoListPage::_todoListEventHandler(ftxui::Event event_)
     {
         if (event_.is_mouse()) {
             if (const ftxui::Mouse::Button button = event_.mouse().button;
-                button == ftxui::Mouse::WheelUp) { this->nextTaskList(); }
-            else if (button == ftxui::Mouse::WheelDown) { this->prevTaskList(); }
+                button == ftxui::Mouse::WheelDown && _selected_task >= _task_items.getKeys().size()) {
+                this->nextTaskList();
+            }
+            else if (button == ftxui::Mouse::WheelUp && _selected_task <= 0) { this->prevTaskList(); }
         }
         else {
-            if (event_ == ftxui::Event::ArrowUp && _selected_task >= _tasks_per_page - 1) { this->nextTaskList(); }
-            else if (event_ == ftxui::Event::ArrowDown && _selected_task <= 0) { this->prevTaskList(); }
+            if (event_ == ftxui::Event::ArrowDown && _selected_task >= _task_items.getKeys().size()) {
+                this->nextTaskList();
+            }
+            else if (event_ == ftxui::Event::ArrowUp && _selected_task <= 0) { this->prevTaskList(); }
         }
         return true;
     }
@@ -208,18 +266,6 @@ namespace pages {
                 )
             )
         );
-    }
-
-    void TodoListPage::printConsole(const std::string& str_)
-    {
-        _console_history.push_back(str_);
-        if (_console_history.size() > 20) { _console_history.erase(_console_history.begin()); }
-        _console_text = "";
-        for (size_t i = _console_history.size(); i > 0; i--) {
-            _console_text += _console_history.at(i - 1);
-            if (i != 1)
-                _console_text += "\n";
-        }
     }
 
 

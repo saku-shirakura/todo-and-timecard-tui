@@ -31,10 +31,12 @@
 
 #ifndef TODOLISTPAGE_H
 #define TODOLISTPAGE_H
+#include <stack>
 #include <string>
 #include <vector>
 
 #include "PageBase.h"
+#include "../components/Console.h"
 #include "../core/DBManager.h"
 
 namespace pages {
@@ -51,29 +53,36 @@ namespace pages {
         void prevTaskList();
 
     private:
+        void _taskListOnChange(const ftxui::Component& next_component_);
+
+        void _taskListOnEnter();
+
         void _updateTaskItemCount();
 
-        bool _eventHandler(ftxui::Event event_);
+        bool _todoListEventHandler(ftxui::Event event_);
 
         int _filterSelectedStatusId() const;
 
         int _current_task_filter_selected{0};
 
-        void printConsole(const std::string& str_);
-
         long long _tasks_count = 0;
         int _task_page = 0;
         int _tasks_per_page = 20;
 
+        std::string _current_task_name{};
+
         long long _current_parent_id{0};
 
-        std::string _console_text{"test1\ntest2\ntest3\ntest4\ntest5\ntest6\ntest7\n"};
+        std::string _console_text{};
 
-        std::vector<std::string> _console_history{};
+        std::stack<long long> _history{{0}};
+
+        std::shared_ptr<components::ConsoleData> _console_data{new components::ConsoleData};
 
         std::vector<std::string> _task_labels{};
         core::db::TaskTable _task_items;
         int _selected_task = 0;
+        int _focused_task = 0;
 
         static const std::vector<std::string> TASK_FILTER_MODE;
         static const std::unordered_map<std::string, core::db::Status> FILTER_LABEL_STATUS_MAP;
