@@ -12,6 +12,7 @@
       <file path="$PROJECT_DIR$/cmake-build-debug" />
       <file path="$PROJECT_DIR$/cmake-build-debug-wsl" />
       <file path="$PROJECT_DIR$/lib" />
+      <file path="$PROJECT_DIR$/src/lib" />
     </excludeRoots>
   </component>
 </project>
