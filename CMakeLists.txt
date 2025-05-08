@@ -32,6 +32,8 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/lib/git-tui/scroller.cpp
         src/components/Console.cpp
         src/components/Console.h
+        src/components/TaskListView.cpp
+        src/components/TaskListView.h
         src/components/custom_menu_entry.cpp
         src/components/custom_menu_entry.h
 )

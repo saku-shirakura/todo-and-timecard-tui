@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) saku shirakura <saku@sakushira.com>
+// Copyright (c) 2025 Saku Shirakura <saku@sakushira.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,32 +21,26 @@
 // SOFTWARE.
 
 /**
-* @file TodoListPage.h
-* @date 25/05/01
-* @brief 簡単な説明(不要なら削除すること。)
-* @details 詳細(不要なら削除すること。)
-* @author saku shirakura (saku@sakushira.com)
-* @since 
-*/
+ * @file TaskListView.h
+ * @date 25/05/08
+ * @brief ファイルの説明
+ * @details ファイルの詳細
+ * @author saku shirakura (saku@sakushira.com)
+ */
 
-#ifndef TODOLISTPAGE_H
-#define TODOLISTPAGE_H
-#include <stack>
-#include <string>
-#include <vector>
 
-#include "PageBase.h"
-#include "../components/Console.h"
-#include "../core/DBManager.h"
+#ifndef TASKLISTVIEW_H
+#define TASKLISTVIEW_H
+#include <ftxui/component/component_base.hpp>
 
-namespace pages {
-    class TodoListPage final : PageBase {
-    public:
-        void show();
+namespace components {
 
-    private:
-        std::shared_ptr<components::ConsoleData> _console_data{new components::ConsoleData};
-    };
-} // pages
+/**
+ * @brief ここにクラスの説明
+ * @details ここにクラスの詳細な説明
+ * @since
+ */
+ftxui::Component TaskListView (const std::function<void(const std::string& msg_)>& on_error_);
+} // components
 
-#endif //TODOLISTPAGE_H
+#endif //TASKLISTVIEW_H
