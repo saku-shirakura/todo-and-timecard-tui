@@ -306,7 +306,7 @@ namespace core::db {
 
     void DBManager::_queryLogger(const std::chrono::time_point<std::chrono::high_resolution_clock> start_query_at_,
                                  const std::string& sql_, const bool success_, const bool is_selected,
-                                 const int rows_count_)
+                                 const size_t rows_count_)
     {
         const auto end_query_at = std::chrono::high_resolution_clock::now();
         std::string normalized_sql = std::regex_replace(sql_, front_gap_pattern, "");
@@ -363,7 +363,7 @@ namespace core::db {
         if (where_clause_.empty())
             sql = std::format("SELECT {} FROM {}", columns, _table_name);
         else sql = std::format("SELECT {} FROM {} WHERE {}", columns, _table_name, where_clause_);
-        if (order_by_.empty()) sql = std::format("{} ORDER BY {}", sql, order_by_);
+        if (!order_by_.empty()) sql = std::format("{} ORDER BY {}", sql, order_by_);
         if (limit_ >= 0 && offset_ >= 0) sql = std::format("{} LIMIT {} OFFSET {}", sql, limit_, offset_);
         sql += ";";
         std::string unused_string;

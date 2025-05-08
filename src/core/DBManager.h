@@ -276,7 +276,7 @@ namespace core::db {
          * @param rows_count_ is_selectedがtrueなら選択された行数。そうでないなら、変更された行数。
          */
         static void _queryLogger(std::chrono::time_point<std::chrono::high_resolution_clock> start_query_at_,
-                                 const std::string& sql_, bool success_, bool is_selected, int rows_count_);
+                                 const std::string& sql_, bool success_, bool is_selected, size_t rows_count_);
 
         static std::unique_ptr<char, sqliteDeleter::SqliteStringDeleter> sqlite3ExpandedSqlWrapper(sqlite3_stmt* stmt_);
 
