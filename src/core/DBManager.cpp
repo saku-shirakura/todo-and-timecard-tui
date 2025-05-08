@@ -436,6 +436,81 @@ namespace core::db {
 
     const std::vector<long long>& TaskTable::getKeys() { return _keys; }
 
+    std::pair<int, std::string> TaskTable::fetchChildTasks(long long parent_task_id_, const int filter_status_,
+        const int page_, const int per_page_)
+    {
+        std::string parent_task_name;
+        std::vector<ColValue> placeholder_values{};
+        std::string where_clause{};
+        TaskTable select_parent_task_name{};
+
+        // 親タスク名を取得する。
+        if (const int err = this->selectRecords("id=?", {
+                                                    {ColType::T_INTEGER, parent_task_id_}
+                                                }); err != 0) { return {1, ""}; }
+        if (this->getTable().contains(parent_task_id_)) {
+            parent_task_name = select_parent_task_name.getTable().at(parent_task_id_).name;
+        }
+        else { parent_task_name = ""; }
+
+        // フィルタが有効な場合は設定する。
+        if (filter_status_ != 0) {
+            where_clause = "status_id=? AND ";
+            placeholder_values.emplace_back(ColType::T_INTEGER, filter_status_);
+        }
+
+        // parent_id_を指定する。
+        if (parent_task_id_ <= 0) { where_clause += "parent_id IS NULL"; }
+        else {
+            where_clause += "parent_id=?";
+            placeholder_values.emplace_back(ColType::T_INTEGER, parent_task_id_);
+        }
+
+        // タスクテーブルを最新のparent_idのものに更新する。
+        const int select_err = this->selectRecords(where_clause, placeholder_values,
+                                                   "status_id, name ASC",
+                                                   per_page_,
+                                                   (page_ - 1) * per_page_);
+        if (select_err != 0) {
+            return {2, parent_task_name};
+        }
+        return {0, parent_task_name};
+    }
+
+    std::pair<int, long long> TaskTable::countChildTasks(const long long parent_task_id_, const int filter_status_)
+    {
+        std::string unuse;
+        std::string cond{};
+
+        // 親タスクのIDを指定する。
+        if (parent_task_id_ <= 0) { cond = "parent_id IS NULL"; }
+        else { cond = "parent_id=" + std::to_string(parent_task_id_); }
+
+        // フィルタが有効な範囲であれば、ステータスIDでフィルタリングする。
+        if (filter_status_ > 0 && filter_status_ <= 4) cond += " AND status_id=" + std::to_string(filter_status_);
+
+        TaskTable tmp_table{};
+        if (int err = tmp_table.usePlaceholderUniSql(
+            std::format("SELECT COUNT(ID) AS task_count FROM task WHERE {};", cond),
+            {},
+            unuse
+        ); err != 0)
+            return {err, 0};
+
+        // データが正常に取得できているなら、その値を返す。
+        // レコードの存在確認
+        if (const auto raw_table = tmp_table.getRawTable(); raw_table.size() > 0) {
+            // 列の存在確認
+            if (const auto front = raw_table.front(); front.contains("task_count")) {
+                // 型チェック
+                if (auto [type, value] = front.at("task_count"); type == ColType::T_INTEGER) {
+                    return {0, std::get<long long>(value)};
+                }
+            }
+        }
+        return {-1, 0};
+    }
+
     void TaskTable::_mapper()
     {
         _keys.clear();
