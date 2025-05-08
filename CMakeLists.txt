@@ -32,6 +32,8 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/lib/git-tui/scroller.cpp
         src/components/Console.cpp
         src/components/Console.h
+        src/components/custom_menu_entry.cpp
+        src/components/custom_menu_entry.h
 )
 
 target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component sqlite3)
