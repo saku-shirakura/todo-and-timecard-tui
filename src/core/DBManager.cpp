@@ -432,12 +432,12 @@ namespace core::db {
     {
     }
 
-    const std::unordered_map<long long, Task>& TaskTable::getTable() { return _table; }
+    const std::unordered_map<long long, Task>& TaskTable::getTable() const { return _table; }
 
-    const std::vector<long long>& TaskTable::getKeys() { return _keys; }
+    const std::vector<long long>& TaskTable::getKeys() const { return _keys; }
 
-    std::pair<int, std::string> TaskTable::fetchChildTasks(long long parent_task_id_, const int filter_status_,
-        const int page_, const int per_page_)
+    std::pair<int, std::string> TaskTable::fetchChildTasks(long long parent_task_id_, const int status_filter_,
+                                                           const int page_, const int per_page_)
     {
         std::string parent_task_name;
         std::vector<ColValue> placeholder_values{};
@@ -445,18 +445,18 @@ namespace core::db {
         TaskTable select_parent_task_name{};
 
         // 親タスク名を取得する。
-        if (const int err = this->selectRecords("id=?", {
+        if (const int err = select_parent_task_name.selectRecords("id=?", {
                                                     {ColType::T_INTEGER, parent_task_id_}
                                                 }); err != 0) { return {1, ""}; }
-        if (this->getTable().contains(parent_task_id_)) {
+        if (select_parent_task_name.getTable().contains(parent_task_id_)) {
             parent_task_name = select_parent_task_name.getTable().at(parent_task_id_).name;
         }
         else { parent_task_name = ""; }
 
         // フィルタが有効な場合は設定する。
-        if (filter_status_ != 0) {
+        if (status_filter_ != 0) {
             where_clause = "status_id=? AND ";
-            placeholder_values.emplace_back(ColType::T_INTEGER, filter_status_);
+            placeholder_values.emplace_back(ColType::T_INTEGER, status_filter_);
         }
 
         // parent_id_を指定する。
@@ -563,9 +563,9 @@ namespace core::db {
     {
     }
 
-    const std::unordered_map<long long, Schedule>& ScheduleTable::getTable() { return _table; }
+    const std::unordered_map<long long, Schedule>& ScheduleTable::getTable() const { return _table; }
 
-    std::vector<long long>& ScheduleTable::getKeys() { return _keys; }
+    const std::vector<long long>& ScheduleTable::getKeys() const { return _keys; }
 
     void ScheduleTable::_mapper()
     {
@@ -601,9 +601,9 @@ namespace core::db {
     {
     }
 
-    const std::unordered_map<long long, Worktime>& WorktimeTable::getTable() { return _table; }
+    const std::unordered_map<long long, Worktime>& WorktimeTable::getTable() const { return _table; }
 
-    std::vector<long long>& WorktimeTable::getKeys() { return _keys; }
+    const std::vector<long long>& WorktimeTable::getKeys() const { return _keys; }
 
     void WorktimeTable::_mapper()
     {

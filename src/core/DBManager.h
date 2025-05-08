@@ -413,19 +413,19 @@ namespace core::db {
     public:
         TaskTable();
 
-        const std::unordered_map<long long, Task>& getTable();
-        const std::vector<long long>& getKeys();
+        const std::unordered_map<long long, Task>& getTable() const;
+        const std::vector<long long>& getKeys() const;
 
         /**
          * @brief ページング子タスクを取得する。
          * @param parent_task_id_ 対象の親タスクID。0以下の値が指定された場合、NULLとして扱います。
-         * @param filter_status_ 対象のステータスID。列挙型Statusと対応しています。Statusに存在しない値が指定された場合は絞り込まれません。
+         * @param status_filter_ 対象のステータスID。列挙型Statusと対応しています。Statusに存在しない値が指定された場合は絞り込まれません。
          * @param page_ 対象のページ。負の数を指定した場合には、ページングされません。
          * @param per_page_ 1ページ当たりのアイテム数。負の数を指定した場合には、ページングされません。
          * @return <成功ステータス, 親タスク名> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
          */
-        std::pair<int, std::string> fetchChildTasks(long long parent_task_id_, int filter_status_, int page_ = -1,
-                                                            int per_page_ = -1);
+        std::pair<int, std::string> fetchChildTasks(long long parent_task_id_, int status_filter_, int page_ = -1,
+                                                    int per_page_ = -1);
 
         /**
          * @brief 親タスク・ステータスで絞り込んだ子タスクの数を取得する。
@@ -470,9 +470,9 @@ namespace core::db {
     public:
         WorktimeTable();
 
-        const std::unordered_map<long long, Worktime>& getTable();
+        const std::unordered_map<long long, Worktime>& getTable() const;
 
-        std::vector<long long>& getKeys();
+        const std::vector<long long>& getKeys() const;
 
     private:
         void _mapper() override;
@@ -506,9 +506,9 @@ namespace core::db {
     public:
         ScheduleTable();
 
-        const std::unordered_map<long long, Schedule>& getTable();
+        const std::unordered_map<long long, Schedule>& getTable() const;
 
-        std::vector<long long>& getKeys();
+        const std::vector<long long>& getKeys() const;
 
     private:
         void _mapper() override;
