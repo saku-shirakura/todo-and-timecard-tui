@@ -440,11 +440,12 @@ namespace core::db {
         /**
          * @brief ステータスフィルタ適用時にタスクIDが属するページ番号を取得します。
          * @param task_id_ タスクID
-         * @param filter_status_ ステータスフィルタ
+         * @param status_filter_ ステータスフィルタ
          * @param per_page_ 1ページ当たりのタスク数
-         * @return <成功ステータス, ページ番号> 成功ステータスで0以外の値が返った場合、エラーが発生しています。また、エラー発生時のページ番号は-1です。
+         * @return <成功ステータス, <ページ番号, ページ内での位置>> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
          */
-        static std::pair<int, long long> fetchPageNumFromTask(long long task_id_, int filter_status_, int per_page_);
+        static std::pair<int, std::pair<long long, long long>> fetchPageNumAndFocusFromTask(
+            long long task_id_, int status_filter_, int per_page_);
 
         /**
          * @brief タスクIDから単一のタスクを取得します。
