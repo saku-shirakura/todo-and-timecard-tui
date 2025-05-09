@@ -321,6 +321,11 @@ namespace components {
                         if (*_data.getSelectedTaskPtr() >= _data.per_page - 1) {
                             _data.nextTaskList();
                         }
+                    } else if (mouse.motion == ftxui::Mouse::Pressed && mouse.button == ftxui::Mouse::Left) {
+                        if (*_data.getFocusedTaskPtr() == *_data.getSelectedTaskPtr()) {
+                            _data.taskListOnEnter();
+                            return true;
+                        }
                     }
                 } else if (event_ == ftxui::Event::ArrowDown) {
                     if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems().getKeys().size()) - 1) {
