@@ -31,10 +31,8 @@
 
 #ifndef LOGGER_H
 #define LOGGER_H
-#include <format>
 #include <fstream>
 #include <mutex>
-#include <sqlite3.h>
 #include <string>
 #include <unordered_map>
 

@@ -23,6 +23,7 @@
 #include "Logger.h"
 #include <chrono>
 #include <format>
+#include <sqlite3.h>
 
 constexpr size_t rotate_count = 5;
 constexpr size_t max_log_size = 1 * 1024 * 1024;
