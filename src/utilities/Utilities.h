@@ -52,6 +52,37 @@ namespace util {
      */
     std::string getDataPath(const std::string& filename_ = "");
 
+    /**
+     * @brief utf8の文字数をカウントする。
+     * @return Ascii文字は1、それ以外は2として扱われます。
+     */
+    size_t countUtf8Character(const std::string& str_);
+
+    /**
+     * @brief utf-8のバイト数を判定します。その際、文字の一部を構成する物については0を返し、不正な文字には-1を返します。
+     * @param c utf-8の1バイト
+     * @returns -1の場合、その値は無効です。
+     * @returns 0の場合、その値は文字の一部です。
+     * @returns 1-4の整数の場合、そのバイトと続く`n - 1`バイト分が1つの文字を表現しています。
+     */
+    int utf8CharSize(unsigned char c);
+
+    /**
+     * @brief utf-8文字列の長さをlength_に可能な限り近づけます。(マルチバイト文字は2文字、Asciiは1文字)
+     * @param str_ utf8の文字列
+     * @param length_ 近づける長さ。
+     * @return 戻り値は、str_の長さがlength_以上であれば、文字列の長さはlength_と等しいかlength_ - 1になります。
+     */
+    std::string utf8FitStrLength(const std::string& str_, size_t length_);
+
+    /**
+     * @brief 文字列が`max_length`を超える場合省略します。
+     * @param str_ 対象文字列
+     * @param max_length_ 最大文字長 (マルチバイト文字は2文字、Asciiは1文字)
+     * @param ellipsis_ 省略記号(デフォルトは" ...")
+     * @return 文字数が`max_length_`を超えている場合省略したものを返します。
+     */
+    std::string ellipsisString(const std::string& str_, size_t max_length_, const std::string& ellipsis_ = " ...");
 }
 
 #endif //UTILITIES_H
