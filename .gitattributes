@@ -1,2 +1,1 @@
-lib/* linguist-vendored
-src/lib/* linguist-vendored
+src/resource.h linguist-generated=true
