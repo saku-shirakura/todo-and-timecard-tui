@@ -45,7 +45,7 @@ std::string util::getDataPath(const std::string& filename_)
         );
 
         // アプリのベースディレクトリ
-        path /= ".com.sakushira.todo-and-timecard-tui";
+        path /= ".net.ln3.todo-and-timecard-tui";
 
         // ファイル名を加えたパス
         if (!filename_.empty()) { path /= std::filesystem::path{filename_}; }
