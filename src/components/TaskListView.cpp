@@ -28,6 +28,7 @@
 
 #include "custom_menu_entry.h"
 #include "../core/DBManager.h"
+#include "../core/Logger.h"
 
 namespace components {
     class TaskListViewData {
@@ -51,7 +52,7 @@ namespace components {
                 _on_error("Could not retrieve data.");
                 break;
             default:
-                _parent_name = parent_name;
+                _parent_name = util::ellipsisString(parent_name, 55);
                 break;
             }
 
@@ -60,7 +61,7 @@ namespace components {
             _task_labels.resize(per_page, "");
             const auto keys = _task_items.getKeys();
             for (size_t i = 0; i < keys.size(); i++) {
-                _task_labels.at(i) = _task_items.getTable().at(keys.at(i)).name;
+                _task_labels.at(i) = util::ellipsisString(_task_items.getTable().at(keys.at(i)).name, 57);
             }
 
             // フォーカスを先頭に戻す。
@@ -152,7 +153,8 @@ namespace components {
         void selectTask(const long long task_id_)
         {
             if (task_id_ <= 0) return;
-            const auto [err, val] = core::db::TaskTable::fetchPageNumAndFocusFromTask(task_id_, _status_filter, per_page);
+            const auto [err, val] = core::db::TaskTable::fetchPageNumAndFocusFromTask(
+                task_id_, _status_filter, per_page);
             if (err != 0) {
                 _on_error("Failed to get current task.");
                 return;
@@ -161,8 +163,8 @@ namespace components {
             _page = static_cast<int>(page_num);
             updatePageCount();
             updateTaskList();
-            _focused_task = page_pos;
-            _selected_task = page_pos;
+            _focused_task = static_cast<int>(page_pos);
+            _selected_task = static_cast<int>(page_pos);
         }
 
         int* getSelectedStatusFilter() { return &_status_filter; }
@@ -207,6 +209,7 @@ namespace components {
         static const std::vector<std::string> TASK_FILTER_MODE;
 
         const int per_page = 20;
+
     private:
         // エラーハンドラ
         std::function<void(const std::string& msg_)> _on_error;
@@ -231,7 +234,7 @@ namespace components {
     };
 
     const std::vector<std::string> TaskListViewData::TASK_FILTER_MODE{
-        "All", "In progress", "Incompleted", "Completed", "Not planned"
+        " All ", " In progress ", " Incompleted ", " Completed ", " Not planned "
     };
 
     // TODO: タスクの詳細をペインで表示する。
@@ -246,6 +249,12 @@ namespace components {
             _history_back_button = HistoryBackButton();
             _status_filter_toggle = StatusFilterToggleMenu();
 
+            // タスクリスト
+            _task_list_menu = TaskListMenu();
+
+            // タスク操作・詳細画面
+            _task_detail = TaskDetail();
+
             // パジネーションメニュー
             _pagination_button = ftxui::Container::Horizontal({});
             _prev_button = PrevButton();
@@ -253,45 +262,52 @@ namespace components {
             _pagination_button->Add(_prev_button);
             _pagination_button->Add(_next_button);
 
-            // タスクリスト
-            _task_list_menu = TaskListMenu();
+            const auto task_list_area = ftxui::Container::Vertical({});
+            task_list_area->Add(_status_filter_toggle);
+            task_list_area->Add(_task_list_menu);
+
+            const auto task_area = ftxui::Container::Horizontal({});
+            task_area->Add(task_list_area);
+            task_area->Add(_task_detail);
 
             // コンポーネントを設定
             _main_component = ftxui::Container::Vertical({});
             _main_component->Add(_history_back_button);
-            _main_component->Add(_status_filter_toggle);
-            _main_component->Add(_task_list_menu);
+            _main_component->Add(task_area);
             _main_component->Add(_pagination_button);
             Add(_main_component);
         }
 
         ftxui::Element OnRender() override
         {
-            return vbox(
+            return
                 hbox(
-                    _history_back_button->Render(),
-                    ftxui::text(" "),
-                    ftxui::text(_data.getParentName())
-                ),
-                ftxui::separator(),
-                hbox(
-                    _status_filter_toggle->Render(),
-                    ftxui::separator()
-                ),
-                ftxui::separator(),
-                _task_list_menu->Render() | ftxui::reflect(_task_list_box),
-                ftxui::separator(),
-                ftxui::hcenter(
-                    ftxui::hbox(
-                        _prev_button->Render(),
-                        ftxui::hcenter(
-                            ftxui::text(
-                                _data.formattedCurrentPage()
-                            )
+                    vbox(
+                        hbox(
+                            _history_back_button->Render(),
+                            ftxui::text(" "),
+                            ftxui::text(_data.getParentName())
                         ),
-                        _next_button->Render()
-                    )
-                )) | ftxui::border;
+                        ftxui::separator(),
+                        _status_filter_toggle->Render(),
+                        ftxui::separator(),
+                        _task_list_menu->Render() | ftxui::reflect(_task_list_box),
+                        ftxui::separator(),
+                        ftxui::hcenter(
+                            ftxui::hbox(
+                                _prev_button->Render(),
+                                ftxui::hcenter(
+                                    ftxui::text(
+                                        _data.formattedCurrentPage()
+                                    )
+                                ),
+                                _next_button->Render()
+                            )
+                        )
+                    ),
+                    ftxui::separator(),
+                    _task_detail->Render()
+                ) | ftxui::border;
         }
 
     private:
@@ -349,15 +365,19 @@ namespace components {
                             _data.nextPage();
                             return true;
                         }
-                    } else if (mouse.motion == ftxui::Mouse::Pressed && mouse.button == ftxui::Mouse::Left) {
+                    }
+                    else if (mouse.motion == ftxui::Mouse::Pressed && mouse.button ==
+                        ftxui::Mouse::Left) {
                         if (*_data.getFocusedTaskPtr() == *_data.getSelectedTaskPtr() &&
                             _task_list_box.Contain(mouse.x, mouse.y)) {
                             _data.taskListOnEnter();
                             return true;
                         }
                     }
-                } else if (event_ == ftxui::Event::ArrowDown) {
-                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems().getKeys().size()) - 1) {
+                }
+                else if (event_ == ftxui::Event::ArrowDown) {
+                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems().
+                                                                              getKeys().size()) - 1) {
                         _pagination_button->TakeFocus();
                         return true;
                     }
@@ -382,6 +402,14 @@ namespace components {
             return ftxui::Button(next_button_option);
         }
 
+        ftxui::Component TaskDetail()
+        {
+            // TODO: WIP 実装する。
+            return ftxui::Renderer([] {
+                return ftxui::paragraph("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
+            });
+        }
+
         TaskListViewData _data;
 
         ftxui::Component _history_back_button;
@@ -391,6 +419,7 @@ namespace components {
         ftxui::Component _next_button;
 
         ftxui::Component _task_list_menu;
+        ftxui::Component _task_detail;
         ftxui::Component _main_component;
 
         ftxui::Box _task_list_box;
