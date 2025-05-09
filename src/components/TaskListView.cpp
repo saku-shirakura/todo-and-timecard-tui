@@ -34,7 +34,7 @@ namespace components {
     public:
         explicit TaskListViewData(const std::function<void(const std::string& msg_)>& on_error_): _on_error(on_error_)
         {
-            resetTaskList();
+            resetPage();
         }
 
         void updateTaskList()
@@ -68,13 +68,13 @@ namespace components {
             _focused_task = 0;
         }
 
-        void resetTaskList()
+        void resetPage()
         {
             _page = 0;
-            nextTaskList();
+            nextPage();
         }
 
-        void nextTaskList()
+        void updatePageCount()
         {
             // 対象となる行数を取得
             auto [count_err, count] = core::db::TaskTable::countChildTasks(
@@ -84,9 +84,13 @@ namespace components {
                 _on_error("Failed to count children.");
                 return;
             }
-
-            // ページが範囲外にならないように、インクリメントする。
             _tasks_count = count;
+        }
+
+        void nextPage()
+        {
+            updatePageCount();
+            // ページが範囲外にならないように、インクリメントする。
             if (_page == 0 || isExistNextPage())
                 _page++;
             else return;
@@ -95,7 +99,7 @@ namespace components {
             updateTaskList();
         }
 
-        void prevTaskList()
+        void prevPage()
         {
             // ページが範囲外にならないように、デクリメントする。
             if (isExistPrevPage()) { _page--; }
@@ -105,10 +109,10 @@ namespace components {
             updateTaskList();
         }
 
-        void scrollUpPrevTaskList()
+        void scrollUpPrevPage()
         {
             if (!isExistPrevPage()) return;
-            prevTaskList();
+            prevPage();
             if (const size_t task_count = _task_items.getKeys().size();
                 task_count != 0) {
                 _focused_task = static_cast<int>(task_count) - 1;
@@ -141,8 +145,24 @@ namespace components {
                 _selected_task < keys.size()) {
                 _parent_id = _task_items.getTable().at(_task_items.getKeys().at(_selected_task)).id;
                 _parent_history.push(_parent_id);
-                resetTaskList();
+                resetPage();
             }
+        }
+
+        void selectTask(const long long task_id_)
+        {
+            if (task_id_ <= 0) return;
+            const auto [err, val] = core::db::TaskTable::fetchPageNumAndFocusFromTask(task_id_, _status_filter, per_page);
+            if (err != 0) {
+                _on_error("Failed to get current task.");
+                return;
+            }
+            const auto [page_num, page_pos] = val;
+            _page = static_cast<int>(page_num);
+            updatePageCount();
+            updateTaskList();
+            _focused_task = page_pos;
+            _selected_task = page_pos;
         }
 
         int* getSelectedStatusFilter() { return &_status_filter; }
@@ -170,9 +190,11 @@ namespace components {
         void parentHistoryBack()
         {
             if (_parent_history.empty()) return;
+            const auto prev_parent = _parent_history.top();
             if (isExistHistory()) { _parent_history.pop(); }
             _parent_id = _parent_history.top();
-            resetTaskList();
+            _status_filter = 0;
+            selectTask(prev_parent);
         }
 
         std::string formattedCurrentPage() const
@@ -257,7 +279,7 @@ namespace components {
                     ftxui::separator()
                 ),
                 ftxui::separator(),
-                _task_list_menu->Render(),
+                _task_list_menu->Render() | ftxui::reflect(_task_list_box),
                 ftxui::separator(),
                 ftxui::hcenter(
                     ftxui::hbox(
@@ -286,7 +308,7 @@ namespace components {
         ftxui::Component StatusFilterToggleMenu()
         {
             auto toggle = ftxui::MenuOption::Toggle();
-            toggle.on_change = [&] { _data.resetTaskList(); };
+            toggle.on_change = [&] { _data.resetPage(); };
             return ftxui::Menu(&TaskListViewData::TASK_FILTER_MODE, _data.getSelectedStatusFilter(), toggle);
         }
 
@@ -315,14 +337,21 @@ namespace components {
                 if (event_.is_mouse()) {
                     if (const auto mouse = event_.mouse(); mouse.button ==
                         ftxui::Mouse::Button::WheelUp) {
-                        if (*_data.getSelectedTaskPtr() <= 0) { _data.scrollUpPrevTaskList(); }
+                        if (*_data.getSelectedTaskPtr() <= 0 &&
+                            _task_list_box.Contain(mouse.x, mouse.y)) {
+                            _data.scrollUpPrevPage();
+                            return true;
+                        }
                     }
                     else if (mouse.button == ftxui::Mouse::Button::WheelDown) {
-                        if (*_data.getSelectedTaskPtr() >= _data.per_page - 1) {
-                            _data.nextTaskList();
+                        if (*_data.getSelectedTaskPtr() >= _data.per_page - 1 &&
+                            _task_list_box.Contain(mouse.x, mouse.y)) {
+                            _data.nextPage();
+                            return true;
                         }
                     } else if (mouse.motion == ftxui::Mouse::Pressed && mouse.button == ftxui::Mouse::Left) {
-                        if (*_data.getFocusedTaskPtr() == *_data.getSelectedTaskPtr()) {
+                        if (*_data.getFocusedTaskPtr() == *_data.getSelectedTaskPtr() &&
+                            _task_list_box.Contain(mouse.x, mouse.y)) {
                             _data.taskListOnEnter();
                             return true;
                         }
@@ -330,6 +359,7 @@ namespace components {
                 } else if (event_ == ftxui::Event::ArrowDown) {
                     if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems().getKeys().size()) - 1) {
                         _pagination_button->TakeFocus();
+                        return true;
                     }
                 }
                 return false;
@@ -340,7 +370,7 @@ namespace components {
         {
             ftxui::ButtonOption prev_button_option = ftxui::ButtonOption::Ascii();
             prev_button_option.label = "←";
-            prev_button_option.on_click = [&] { _data.prevTaskList(); };
+            prev_button_option.on_click = [&] { _data.prevPage(); };
             return ftxui::Button(prev_button_option);
         }
 
@@ -348,7 +378,7 @@ namespace components {
         {
             ftxui::ButtonOption next_button_option = ftxui::ButtonOption::Ascii();
             next_button_option.label = "→";
-            next_button_option.on_click = [&] { _data.nextTaskList(); };
+            next_button_option.on_click = [&] { _data.nextPage(); };
             return ftxui::Button(next_button_option);
         }
 
@@ -362,6 +392,8 @@ namespace components {
 
         ftxui::Component _task_list_menu;
         ftxui::Component _main_component;
+
+        ftxui::Box _task_list_box;
     };
 
     ftxui::Component TaskListView(const std::function<void(const std::string& msg_)>& on_error_)
