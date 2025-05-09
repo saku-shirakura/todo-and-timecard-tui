@@ -33,7 +33,6 @@
 #define CONSOLE_H
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
-#include "../lib/git-tui/scroller.hpp"
 
 namespace components {
     class ConsoleData final {

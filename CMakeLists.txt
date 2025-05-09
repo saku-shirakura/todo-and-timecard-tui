@@ -12,7 +12,7 @@ FetchContent_MakeAvailable(ftxui)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_subdirectory(lib/sqlite3)
+add_subdirectory(dependencies/sqlite3)
 
 add_executable(todo_and_timecard_tui src/main.cpp
         src/core/TodoAndTimeCardApp.cpp
@@ -28,8 +28,6 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/resource.h
         src/core/Logger.cpp
         src/core/Logger.h
-        src/lib/git-tui/scroller.hpp
-        src/lib/git-tui/scroller.cpp
         src/components/Console.cpp
         src/components/Console.h
         src/components/TaskListView.cpp
