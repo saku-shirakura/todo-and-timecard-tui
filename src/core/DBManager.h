@@ -399,6 +399,8 @@ namespace core::db {
         friend class TaskTable;
 
     private:
+        Task();
+
         Task(long long id_,
              long long parent_id_,
              std::string name_,
@@ -434,6 +436,22 @@ namespace core::db {
          * @return <成功ステータス, タスクの数> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
          */
         static std::pair<int, long long> countChildTasks(long long parent_task_id_, int filter_status_);
+
+        /**
+         * @brief ステータスフィルタ適用時にタスクIDが属するページ番号を取得します。
+         * @param task_id_ タスクID
+         * @param filter_status_ ステータスフィルタ
+         * @param per_page_ 1ページ当たりのタスク数
+         * @return <成功ステータス, ページ番号> 成功ステータスで0以外の値が返った場合、エラーが発生しています。また、エラー発生時のページ番号は-1です。
+         */
+        static std::pair<int, long long> fetchPageNumFromTask(long long task_id_, int filter_status_, int per_page_);
+
+        /**
+         * @brief タスクIDから単一のタスクを取得します。
+         * @param task_id_ 対象となるタスクID
+         * @return <成功ステータス, タスク> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
+         */
+        static std::pair<int, Task> fetchTask(long long task_id_);
 
     private:
         void _mapper() override;

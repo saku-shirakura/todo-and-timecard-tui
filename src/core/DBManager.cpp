@@ -411,6 +411,9 @@ namespace core::db {
     }
 
 
+    Task::Task(): id(-1), parent_id(-1), status_id(0)
+    {}
+
     Task::Task(const long long id_, const long long parent_id_, std::string name_, std::string detail_,
                const long long status_id_, std::string created_at_,
                std::string updated_at_): id(id_), parent_id(parent_id_), name(std::move(name_)),
@@ -509,6 +512,67 @@ namespace core::db {
             }
         }
         return {-1, 0};
+    }
+
+    std::pair<int, long long> TaskTable::fetchPageNumFromTask(const long long task_id_, const int filter_status_, const int per_page_)
+    {
+        std::string unuse;
+        std::string sql{};
+        TaskTable tmp_tbl;
+
+        // 対象のタスクを取得。
+        const auto [fetch_task_err, task] = fetchTask(task_id_);
+        if (fetch_task_err != 0) return {-1, -1};
+        long long parent_task_id = task.parent_id;
+
+        // SQLを動的に組み立てる
+        // docs/taskFromPageNumber.sqlに記載
+        sql = "SELECT ceil(row_id / " + std::to_string(per_page_) + ") + 1 AS page_pos";
+        sql += " FROM (";
+        sql += " SELECT id, row_number() over (ORDER BY status_id, name) AS row_id";
+        sql += " FROM task WHERE parent_id";
+
+        // 親タスクIDを設定。0以下であればNULLとみなす。
+        if (parent_task_id <= 0) {
+            sql += " IS NULL";
+        } else {
+            sql += "=" + std::to_string(parent_task_id);
+        }
+
+        // 取得対象のステータスIDを設定。範囲外なら設定しない。
+        if (filter_status_ > 0 && filter_status_ <= 4) {
+            sql += " AND status_id=" + std::to_string(filter_status_);
+        }
+
+        // タスクIDで絞り込む。
+        sql += ") WHERE id=" + std::to_string(task_id_) + ";";
+
+        // SQLを実行。
+        if (const auto err = tmp_tbl.usePlaceholderUniSql(sql, {}, unuse);
+            err != 0) {
+            return {err, -1};
+        }
+
+        // テーブルに値が存在し、それが整数ならpage_posを返す。そうでなければエラー。
+        const auto raw_tbl = tmp_tbl.getRawTable();
+        if (raw_tbl.empty()) return {-2, -1};
+        if (!raw_tbl.front().contains("page_pos")) return {-3, -1};
+        if (const auto [type, val] = raw_tbl.front().at("page_pos");
+            type == ColType::T_INTEGER) {
+            return {0, std::get<long long>(val)};
+        }
+        return {-4, -1};
+    }
+
+    std::pair<int, Task> TaskTable::fetchTask(long long task_id_)
+    {
+        TaskTable table;
+        if (const int err = table.selectRecords("id=", {{ColType::T_INTEGER, task_id_}}); err != 0) {
+            return {err, Task()};
+        }
+        if (!table.getTable().contains(task_id_)) return {-1, Task()};
+        Task task = table.getTable().at(task_id_);
+        return {0 , task};
     }
 
     void TaskTable::_mapper()
