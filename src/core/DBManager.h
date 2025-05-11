@@ -40,6 +40,8 @@
 #include <variant>
 #include <sqlite3.h>
 #include <vector>
+#include <mutex>
+#include <chrono>
 
 /**
  * @note getDouble(), getLongLong(), getString()等の仕様によりNULLは、0, 空文字などとして扱われます。
