@@ -34,6 +34,8 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/components/TaskListView.h
         src/components/custom_menu_entry.cpp
         src/components/custom_menu_entry.h
+        src/utilities/DurationTimer.cpp
+        src/utilities/DurationTimer.h
 )
 
 target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component sqlite3)

@@ -117,17 +117,14 @@ std::string util::utf8FitStrLength(const std::string& str_, const size_t length_
 std::string util::ellipsisString(const std::string& str_, const size_t max_length_, const std::string& ellipsis_)
 {
     // 表示上の省略記号の文字数を求める。
-    const int actual_ellipsis_length = countUtf8Character(ellipsis_);
+    const size_t actual_ellipsis_length = countUtf8Character(ellipsis_);
     if (actual_ellipsis_length > max_length_) return ellipsis_;
 
-    // 表示上の文字数を求める。
-    const int actual_str_length = countUtf8Character(str_);
-
     // 表示上の文字数が最大値を超えない場合は何もしない。
-    if (actual_str_length <= max_length_) return str_;
+    if (countUtf8Character(str_) <= max_length_) return str_;
 
     // 省略記号分を除いた使用可能な文字数を求める。
-    const int ellipsis_excluded_length = max_length_ - actual_ellipsis_length;
+    const size_t ellipsis_excluded_length = max_length_ - actual_ellipsis_length;
 
     return utf8FitStrLength(str_, ellipsis_excluded_length) + ellipsis_;
 }
