@@ -35,6 +35,7 @@ namespace components {
     public:
         explicit TaskListViewData(const std::function<void(const std::string& msg_)>& on_error_): _on_error(on_error_)
         {
+            _task_items = std::make_shared<core::db::TaskTable>(core::db::TaskTable());
             resetPage();
         }
 
@@ -42,7 +43,7 @@ namespace components {
         {
             // 親タスク名と子タスクを取得する。
             switch (
-                const auto [selelct_err, parent_name] = _task_items.fetchChildTasks(
+                const auto [selelct_err, parent_name] = _task_items->fetchChildTasks(
                     _parent_id, _status_filter, _page, per_page);
                 selelct_err) {
             case 1:
@@ -57,11 +58,11 @@ namespace components {
             }
 
             // ラベルを登録する。
-            _task_labels.clear();
-            _task_labels.resize(per_page, "");
-            const auto keys = _task_items.getKeys();
+            _task_labels->clear();
+            _task_labels->resize(per_page, "");
+            const auto keys = _task_items->getKeys();
             for (size_t i = 0; i < keys.size(); i++) {
-                _task_labels.at(i) = util::ellipsisString(_task_items.getTable().at(keys.at(i)).name, 57);
+                _task_labels->at(i) = util::ellipsisString(_task_items->getTable().at(keys.at(i)).name, 57);
             }
 
             // フォーカスを先頭に戻す。
@@ -114,7 +115,7 @@ namespace components {
         {
             if (!isExistPrevPage()) return;
             prevPage();
-            if (const size_t task_count = _task_items.getKeys().size();
+            if (const size_t task_count = _task_items->getKeys().size();
                 task_count != 0) {
                 _focused_task = static_cast<int>(task_count) - 1;
                 _selected_task = static_cast<int>(task_count) - 1;
@@ -124,7 +125,7 @@ namespace components {
         void taskListOnChange()
         {
             // 選択されているタスクが、存在しているタスクの数より多い場合
-            if (const size_t task_count = _task_items.getKeys().size();
+            if (const size_t task_count = _task_items->getKeys().size();
                 _selected_task >= task_count) {
                 // タスクがないなら、0を常に選択する。
                 // タスクがあるなら、最後のタスクを選択し、次のコンポーネントへ移る。
@@ -142,9 +143,9 @@ namespace components {
         void taskListOnEnter()
         {
             // 選択されたタスクが範囲内であれば、そのタスクに移動する。
-            if (const auto keys = _task_items.getKeys();
+            if (const auto keys = _task_items->getKeys();
                 _selected_task < keys.size()) {
-                _parent_id = _task_items.getTable().at(_task_items.getKeys().at(_selected_task)).id;
+                _parent_id = _task_items->getTable().at(_task_items->getKeys().at(_selected_task)).id;
                 _parent_history.push(_parent_id);
                 resetPage();
             }
@@ -173,21 +174,21 @@ namespace components {
 
         int* getSelectedTaskPtr() { return &_selected_task; }
 
-        std::vector<std::string>* getTaskLabels() { return &_task_labels; }
+        [[nodiscard]] const std::shared_ptr<std::vector<std::string>>& getTaskLabels() { return _task_labels; }
 
-        const core::db::TaskTable& getItems() const { return _task_items; }
+        [[nodiscard]] const std::shared_ptr<core::db::TaskTable>& getItems() const { return _task_items; }
 
-        bool isExistNextPage() const { return _tasks_count > per_page * _page; }
+        [[nodiscard]] bool isExistNextPage() const { return _tasks_count > per_page * _page; }
 
-        bool isExistPrevPage() const { return _page > 1; }
+        [[nodiscard]] bool isExistPrevPage() const { return _page > 1; }
 
-        bool isExistHistory() const { return _parent_history.size() > 1; }
+        [[nodiscard]] bool isExistHistory() const { return _parent_history.size() > 1; }
 
-        int getCurrentPage() const { return _page; }
+        [[nodiscard]] int getCurrentPage() const { return _page; }
 
         std::string getParentName() { return _parent_name; }
 
-        long long getTaskCount() const { return _tasks_count; }
+        [[nodiscard]] long long getTaskCount() const { return _tasks_count; }
 
         void parentHistoryBack()
         {
@@ -199,7 +200,7 @@ namespace components {
             selectTask(prev_parent);
         }
 
-        std::string formattedCurrentPage() const
+        [[nodiscard]] std::string formattedCurrentPage() const
         {
             std::stringstream sstr;
             sstr << std::setw(5) << std::setfill('0') << _page;
@@ -215,8 +216,8 @@ namespace components {
         std::function<void(const std::string& msg_)> _on_error;
 
         // タスクリスト関係
-        std::vector<std::string> _task_labels{};
-        core::db::TaskTable _task_items;
+        std::shared_ptr<std::vector<std::string>> _task_labels{new std::vector<std::string>};
+        std::shared_ptr<core::db::TaskTable> _task_items{new core::db::TaskTable};
         int _selected_task = 0;
         int _focused_task = 0;
         long long _tasks_count = 0;
@@ -331,18 +332,18 @@ namespace components {
         ftxui::Component TaskListMenu()
         {
             ftxui::MenuOption task_list_option{};
-            task_list_option.entries = _data.getTaskLabels();
+            task_list_option.entries = _data.getTaskLabels().get();
             task_list_option.selected = _data.getSelectedTaskPtr();
             task_list_option.focused_entry = _data.getFocusedTaskPtr();
             task_list_option.on_change = [&] { _data.taskListOnChange(); };
             task_list_option.on_enter = [&] { _data.taskListOnEnter(); };
             task_list_option.entries_option.transform = [&](const ftxui::EntryState& state) {
-                const auto keys = _data.getItems().getKeys();
+                const auto keys = _data.getItems()->getKeys();
                 if (_data.getTaskCount() <= 0 || state.index >= keys.size())
                     return customize::TodoListMenuEntryOptionTransform(state, core::db::Status::Not_Planned, true);
 
                 const auto status = static_cast<core::db::Status>(
-                    _data.getItems().getTable().at(keys.at(state.index)).status_id
+                    _data.getItems()->getTable().at(keys.at(state.index)).status_id
                 );
                 return customize::TodoListMenuEntryOptionTransform(state, status, false);
             };
@@ -376,8 +377,7 @@ namespace components {
                     }
                 }
                 else if (event_ == ftxui::Event::ArrowDown) {
-                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems().
-                                                                              getKeys().size()) - 1) {
+                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems()->getKeys().size()) - 1) {
                         _pagination_button->TakeFocus();
                         return true;
                     }
