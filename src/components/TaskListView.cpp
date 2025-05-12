@@ -29,6 +29,9 @@
 #include "custom_menu_entry.h"
 #include "../core/DBManager.h"
 #include "../core/Logger.h"
+#include "../core/TodoAndTimeCardApp.h"
+#include "../page/TodoListPage.h"
+#include "../utilities/DurationTimer.h"
 
 namespace components {
     class TaskListViewData {
@@ -146,7 +149,6 @@ namespace components {
             if (const auto keys = _task_items->getKeys();
                 _selected_task < keys.size()) {
                 _parent_id = _task_items->getTable().at(_task_items->getKeys().at(_selected_task)).id;
-                _parent_history.push(_parent_id);
                 resetPage();
             }
         }
@@ -162,6 +164,12 @@ namespace components {
             }
             const auto [page_num, page_pos] = val;
             _page = static_cast<int>(page_num);
+            auto [fetch_parent_err, task] = core::db::TaskTable::fetchTask(task_id_);
+            if (fetch_parent_err != 0) {
+                _on_error("Failed to get current task record.");
+                return;
+            }
+            _parent_id = task.parent_id;
             updatePageCount();
             updateTaskList();
             _focused_task = static_cast<int>(page_pos);
@@ -182,8 +190,6 @@ namespace components {
 
         [[nodiscard]] bool isExistPrevPage() const { return _page > 1; }
 
-        [[nodiscard]] bool isExistHistory() const { return _parent_history.size() > 1; }
-
         [[nodiscard]] int getCurrentPage() const { return _page; }
 
         std::string getParentName() { return _parent_name; }
@@ -192,19 +198,22 @@ namespace components {
 
         void parentHistoryBack()
         {
-            if (_parent_history.empty()) return;
-            const auto prev_parent = _parent_history.top();
-            if (isExistHistory()) { _parent_history.pop(); }
-            _parent_id = _parent_history.top();
-            _status_filter = 0;
-            selectTask(prev_parent);
+            setStatusFilter(0);
+            selectTask(_parent_id);
         }
+
 
         [[nodiscard]] std::string formattedCurrentPage() const
         {
             std::stringstream sstr;
             sstr << std::setw(5) << std::setfill('0') << _page;
             return sstr.str();
+        }
+
+        void setStatusFilter(const int i)
+        {
+            if (i > 4 || i <= 0) { _status_filter = 0; }
+            else { _status_filter = i; }
         }
 
         static const std::vector<std::string> TASK_FILTER_MODE;
@@ -231,14 +240,12 @@ namespace components {
         // 親タスク関係
         long long _parent_id{0};
         std::string _parent_name{};
-        std::stack<long long> _parent_history{{0}};
     };
 
     const std::vector<std::string> TaskListViewData::TASK_FILTER_MODE{
         " All ", " In progress ", " Incompleted ", " Completed ", " Not planned "
     };
 
-    // TODO: タスクの詳細をペインで表示する。
     // TODO: タスクの詳細を変更可能にする。(進行状況も含む)
     // TODO: タスクを追加可能にする。
     // TODO: タスクを削除可能にする。
@@ -377,7 +384,8 @@ namespace components {
                     }
                 }
                 else if (event_ == ftxui::Event::ArrowDown) {
-                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems()->getKeys().size()) - 1) {
+                    if (*_data.getSelectedTaskPtr() >= static_cast<int>(_data.getItems()->
+                                                                              getKeys().size()) - 1) {
                         _pagination_button->TakeFocus();
                         return true;
                     }
@@ -402,12 +410,100 @@ namespace components {
             return ftxui::Button(next_button_option);
         }
 
+        class TaskDetailBase final : public ComponentBase {
+        public:
+            explicit TaskDetailBase(TaskListViewBase* tasklist_view_base_): _tasklist_view_base(tasklist_view_base_)
+            {
+                _jump_button = ftxui::Button("jump", [&] {
+                    this->_tasklist_view_base->_data.setStatusFilter(0);
+                    this->_tasklist_view_base->_data.selectTask(
+                        _active_task.getActiveTaskId());
+                }, ftxui::ButtonOption::Ascii());
+                const auto main_container = ftxui::Container::Vertical({});
+                main_container->Add(_jump_button);
+                Add(main_container);
+            }
+
+            ftxui::Element OnRender() override
+            {
+                using namespace ftxui;
+                const auto active_status = _active_task.isActivated()
+                                               ? text("Active(" + _active_task.getTimerText() + "): "
+                                                   + util::ellipsisString(_active_task.getActiveTaskName(), 34))
+                                               : text("Inactive.");
+                return vbox(
+                    hbox(
+                        active_status,
+                        _active_task.isActivated() ? _jump_button->Render() | align_right : text("")
+                    ),
+                    separator(),
+                    paragraph(
+                        "WIP Area of task details.")
+                );
+            }
+
+        private:
+            class ActiveTask {
+            public:
+                ActiveTask() { _loadActiveTask(); }
+
+                void activate(const long long task_id_)
+                {
+                    core::db::WorktimeTable::activateTask(task_id_);
+                    _activate();
+                }
+
+                void deactivate()
+                {
+                    core::db::WorktimeTable::deactivateAllTasks();
+                    _active_timer.setUpdateCallback(nullptr);
+                    _active_timer.setStartEpoch(0);
+                    _is_activated = false;
+                }
+
+                const std::string& getActiveTaskName() { return _active_task_name; }
+
+                const std::string& getTimerText() { return _active_timer.getText(); }
+
+                bool isActivated() const { return _is_activated; }
+
+                long long getActiveTaskId() const { return _active_task_id; }
+
+            private:
+                void _loadActiveTask() { _activate(); }
+
+                void _activate()
+                {
+                    core::db::WorktimeTable table;
+                    table.ensureOnlyOneActiveTask();
+                    table.selectActiveTask();
+                    if (table.getTable().empty() || table.getKeys().empty()) return;
+                    const auto worktime = table.getTable().at(table.getKeys().front());
+                    const auto [fetch_task_err, task] = core::db::TaskTable::fetchTask(worktime.task_id);
+                    _active_task_name = task.name;
+                    _active_task_id = task.id;
+                    _active_timer.setStartEpoch(worktime.starting_time);
+                    _active_timer.setUpdateCallback(_onTimerUpdated);
+                    _is_activated = true;
+                }
+
+                static void _onTimerUpdated() { core::TodoAndTimeCardApp::updateScreen(); }
+
+                bool _is_activated{false};
+                std::string _active_task_name{};
+                long long _active_task_id{-1};
+                DurationTimer _active_timer{0};
+            };
+
+            TaskListViewBase* _tasklist_view_base;
+            ActiveTask _active_task;
+            ftxui::Component _jump_button;
+        };
+
         ftxui::Component TaskDetail()
         {
             // TODO: WIP 実装する。
-            return ftxui::Renderer([] {
-                return ftxui::paragraph("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
-            });
+            return ftxui::Make<TaskDetailBase>(this);
         }
 
         TaskListViewData _data;
