@@ -50,7 +50,7 @@ DurationTimer::DurationTimer(const std::chrono::seconds start_time_epoch_,
 DurationTimer::~DurationTimer()
 {
     _loop = false;
-    if (_thread.joinable()) { _thread.join(); }
+    if (_thread.joinable()) { _thread.detach(); }
 }
 
 void DurationTimer::setStartEpoch(const long long start_time_epoch_)
