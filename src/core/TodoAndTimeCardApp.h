@@ -38,7 +38,13 @@ namespace core {
     public:
         TodoAndTimeCardApp() = default;
 
-        void execute();
+        static void execute();
+
+        static void updateScreen();
+
+    private:
+        static std::mutex _screen_mutex;
+        static ftxui::ScreenInteractive _screen;
     };
 } // core
 

@@ -35,16 +35,19 @@
 #include <string>
 #include <vector>
 
-#include "PageBase.h"
+#include "../../cmake-build-release/_deps/ftxui-src/include/ftxui/component/screen_interactive.hpp"
 #include "../components/Console.h"
 #include "../core/DBManager.h"
 
 namespace pages {
-    class TodoListPage final : PageBase {
+    class TodoListPage final {
     public:
-        void show();
+        TodoListPage();
+
+        ftxui::Component getComponent();
 
     private:
+        ftxui::Component _page_container;
         std::shared_ptr<components::ConsoleData> _console_data{new components::ConsoleData};
     };
 } // pages

@@ -38,26 +38,17 @@
 #include "../core/DBManager.h"
 
 namespace pages {
-    void TodoListPage::show()
+    TodoListPage::TodoListPage()
     {
-        const ftxui::Component page_container = ftxui::Container::Vertical({});
+        _page_container = ftxui::Container::Vertical({});
         const ftxui::Component task_list_view = components::TaskListView([&](const std::string& msg) {
             _console_data->printConsole(msg);
         });
         const ftxui::Component console = components::Console(_console_data);
 
-        page_container->Add(task_list_view);
-        page_container->Add(console);
-
-        _renderer = Renderer(page_container, [&] {
-            return
-                vbox(
-                    task_list_view->Render(),
-                    ftxui::separator(),
-                    console->Render()
-                );
-        });
-
-        _render();
+        _page_container->Add(task_list_view);
+        _page_container->Add(console);
     }
+
+    ftxui::Component TodoListPage::getComponent() { return _page_container; }
 } // pages

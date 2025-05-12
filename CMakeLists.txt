@@ -21,8 +21,6 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/page/TodoListPage.h
         src/core/DBManager.cpp
         src/core/DBManager.h
-        src/page/PageBase.cpp
-        src/page/PageBase.h
         src/utilities/Utilities.cpp
         src/utilities/Utilities.h
         src/resource.h

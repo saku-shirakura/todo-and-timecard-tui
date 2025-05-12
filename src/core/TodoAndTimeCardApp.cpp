@@ -25,7 +25,12 @@
 namespace core {
     void TodoAndTimeCardApp::execute()
     {
+        std::lock_guard lock(_screen_mutex);
         pages::TodoListPage todo{};
-        todo.show();
+        _screen.Loop(todo.getComponent());
     }
+
+    void TodoAndTimeCardApp::updateScreen() { _screen.PostEvent(ftxui::Event::Custom); }
+
+    ftxui::ScreenInteractive pages::TodoListPage::_screen{ftxui::ScreenInteractive::TerminalOutput()};
 } // core
