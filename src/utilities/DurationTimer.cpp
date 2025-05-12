@@ -22,11 +22,9 @@
 
 #include "DurationTimer.h"
 
-#include <iostream>
 
 DurationTimer::DurationTimer(const long long start_time_epoch_): DurationTimer(start_time_epoch_, nullptr)
 {
-    _thread = std::thread([&] { _threadProcess(); });
 }
 
 DurationTimer::DurationTimer(const std::chrono::seconds start_time_epoch_): DurationTimer(start_time_epoch_, nullptr)
@@ -39,6 +37,7 @@ DurationTimer::DurationTimer(const long long start_time_epoch_, const std::funct
                                                          : [] {
                                                          })
 {
+    _thread = std::thread([&] { _threadProcess(); });
 }
 
 DurationTimer::DurationTimer(const std::chrono::seconds start_time_epoch_,
@@ -64,7 +63,7 @@ void DurationTimer::setStartEpoch(const std::chrono::seconds start_time_epoch_)
     _start_time_epoch = start_time_epoch_;
 }
 
-const std::string& DurationTimer::getText() const
+const std::string& DurationTimer::getText()
 {
     std::lock_guard lock(_update_text_mtx);
     return _duration_text;
@@ -76,7 +75,7 @@ void DurationTimer::setUpdateCallback(const std::function<void()>& on_update_)
     _on_update = on_update_;
 }
 
-void DurationTimer::_updateCallback() const noexcept
+void DurationTimer::_updateCallback() noexcept
 {
     try {
         std::lock_guard lock(_on_update_mtx);

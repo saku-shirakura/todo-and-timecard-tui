@@ -35,6 +35,7 @@
 #include <functional>
 #include <string>
 #include <thread>
+#include <mutex>
 
 
 /**
@@ -55,12 +56,12 @@ public:
 
     void setStartEpoch(std::chrono::seconds start_time_epoch_);
 
-    [[nodiscard]] const std::string& getText() const;
+    [[nodiscard]] const std::string& getText();
 
     void setUpdateCallback(const std::function<void()>& on_update_);
 
 private:
-    void _updateCallback() const noexcept;
+    void _updateCallback() noexcept;
 
     void _updateText();
 
