@@ -53,24 +53,42 @@ DurationTimer::~DurationTimer()
     if (_thread.joinable()) { _thread.join(); }
 }
 
+void DurationTimer::setStartEpoch(const long long start_time_epoch_)
+{
+    setStartEpoch(std::chrono::seconds(start_time_epoch_));
+}
+
+void DurationTimer::setStartEpoch(const std::chrono::seconds start_time_epoch_)
+{
+    std::lock_guard lock(_update_text_mtx);
+    _start_time_epoch = start_time_epoch_;
+}
+
 const std::string& DurationTimer::getText() const
 {
-    std::lock_guard lock(_mtx);
+    std::lock_guard lock(_update_text_mtx);
     return _duration_text;
 }
 
-void DurationTimer::setUpdateCallback(const std::function<void()>& on_update_) { _on_update = on_update_; }
+void DurationTimer::setUpdateCallback(const std::function<void()>& on_update_)
+{
+    std::lock_guard lock(_on_update_mtx);
+    _on_update = on_update_;
+}
 
 void DurationTimer::_updateCallback() const noexcept
 {
-    try { _on_update(); }
+    try {
+        std::lock_guard lock(_on_update_mtx);
+        _on_update();
+    }
     catch (const std::exception& _) {
     }
 }
 
 void DurationTimer::_updateText()
 {
-    std::lock_guard lock(_mtx);
+    std::lock_guard lock(_update_text_mtx);
     using namespace std::chrono_literals;
     const auto now_time_point = std::chrono::utc_clock::now();
     const auto now_seconds = std::chrono::duration_cast<std::chrono::seconds>(now_time_point.time_since_epoch());

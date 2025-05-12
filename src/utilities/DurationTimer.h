@@ -51,6 +51,10 @@ public:
 
     ~DurationTimer();
 
+    void setStartEpoch(long long start_time_epoch_);
+
+    void setStartEpoch(std::chrono::seconds start_time_epoch_);
+
     [[nodiscard]] const std::string& getText() const;
 
     void setUpdateCallback(const std::function<void()>& on_update_);
@@ -67,7 +71,8 @@ private:
     std::string _duration_text{};
     std::function<void()> _on_update{};
 
-    std::mutex _mtx;
+    std::mutex _update_text_mtx;
+    std::mutex _on_update_mtx;
 
     bool _loop{true};
 };
