@@ -681,12 +681,41 @@ namespace core::db {
 
     int WorktimeTable::ensureOnlyOneActiveTask()
     {
-        return usePlaceholderUniSql(std::string(F_CHANGE_TO_ONLY_ONE_TASK_SQL, SIZE_CHANGE_TO_ONLY_ONE_TASK_SQL));
+        WorktimeTable table;
+        return table.usePlaceholderUniSql(std::string(F_CHANGE_TO_ONLY_ONE_TASK_SQL, SIZE_CHANGE_TO_ONLY_ONE_TASK_SQL));
+    }
+
+    int WorktimeTable::deactivateAllTasks()
+    {
+        WorktimeTable table;
+        return table.usePlaceholderUniSql(
+            "UPDATE worktime SET finishing_time = (DATETIME('now', 'unixepoch')) WHERE finishing_time IS NULL ORDER BY id DESC;");
     }
 
     int WorktimeTable::selectActiveTask()
     {
-        return usePlaceholderUniSql(std::string(F_SELECT_ACTIVE_TASK_SQL, SIZE_SELECT_ACTIVE_TASK_SQL));
+        const int err = usePlaceholderUniSql(std::string(F_SELECT_ACTIVE_TASK_SQL, SIZE_SELECT_ACTIVE_TASK_SQL));
+        if (err != 0) return err;
+        _mapper();
+        return 0;
+    }
+
+    int WorktimeTable::activateTask(const long long task_id_)
+    {
+        WorktimeTable table;
+        deactivateAllTasks();
+        return table.usePlaceholderUniSql("INSERT INTO worktime(task_id) VALUES (?);", {
+                                              {ColType::T_INTEGER, task_id_}
+                                          });
+    }
+
+    int WorktimeTable::updateWorktime(long long id_, const std::string& memo_)
+    {
+        WorktimeTable table;
+        return table.usePlaceholderUniSql("UPDATE worktime SET memo=? WHERE id=?;", {
+                                              {ColType::T_TEXT, memo_},
+                                              {ColType::T_INTEGER, id_}
+                                          });
     }
 
     void WorktimeTable::_mapper()

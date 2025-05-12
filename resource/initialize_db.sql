@@ -20,50 +20,50 @@ CREATE TABLE task
     name       TEXT                                              NOT NULL,
     detail     TEXT,
     status_id  INTEGER REFERENCES status (id) ON DELETE RESTRICT NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch')),
-    updated_at INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch'))
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', DATETIME('now')))
 );
 
 CREATE TRIGGER trigger_task_updated_at
     AFTER UPDATE
     ON task
 BEGIN
-    UPDATE task SET updated_at = DATETIME('now', 'unixepoch') WHERE rowid == NEW.rowid;
+    UPDATE task SET updated_at = strftime('%s', DATETIME('now')) WHERE rowid == NEW.rowid;
 END;
 
 CREATE TABLE worktime
 (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL DEFAULT NULL,
+    task_id       INTEGER REFERENCES task (id) ON DELETE CASCADE NOT NULL,
     memo           TEXT,
-    starting_time  INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch')),
+    starting_time INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
     finishing_time INTEGER          DEFAULT NULL,
-    created_at     INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch')),
-    updated_at     INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch'))
+    created_at    INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
+    updated_at    INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now')))
 );
 
 CREATE TRIGGER trigger_worktime_updated_at
     AFTER UPDATE
     ON worktime
 BEGIN
-    UPDATE worktime SET updated_at = DATETIME('now', 'unixepoch') WHERE rowid == NEW.rowid;
+    UPDATE worktime SET updated_at = (strftime('%s', DATETIME('now'))) WHERE rowid == NEW.rowid;
 END;
 
 CREATE TABLE schedule
 (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id        INTEGER REFERENCES task (id) ON DELETE SET NULL DEFAULT NULL,
+    task_id    INTEGER REFERENCES task (id) ON DELETE CASCADE NOT NULL,
     starting_time  INTEGER NOT NULL,
     finishing_time INTEGER NOT NULL,
-    created_at     INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch')),
-    updated_at     INTEGER NOT NULL DEFAULT (DATETIME('now', 'unixepoch'))
+    created_at INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
+    updated_at INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now')))
 );
 
 CREATE TRIGGER trigger_schedule_updated_at
     AFTER UPDATE
     ON schedule
 BEGIN
-    UPDATE schedule SET updated_at = DATETIME('now', 'unixepoch') WHERE rowid == NEW.rowid;
+    UPDATE schedule SET updated_at = strftime('%s', DATETIME('now')) WHERE rowid == NEW.rowid;
 end;
 
 INSERT INTO status(id, label)

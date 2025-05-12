@@ -1,5 +1,5 @@
 SELECT *
 FROM worktime
 WHERE finishing_time IS NULL
-ORDER BY starting_time DESC
+ORDER BY id DESC
 LIMIT 1 OFFSET 0;

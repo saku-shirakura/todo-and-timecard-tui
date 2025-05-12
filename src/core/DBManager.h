@@ -501,9 +501,15 @@ namespace core::db {
 
         const std::vector<long long>& getKeys() const;
 
-        int ensureOnlyOneActiveTask();
+        static int ensureOnlyOneActiveTask();
+
+        static int deactivateAllTasks();
 
         int selectActiveTask();
+
+        static int activateTask(long long task_id_);
+
+        static int updateWorktime(long long id_, const std::string& memo_);
 
     private:
         void _mapper() override;
