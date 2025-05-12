@@ -401,8 +401,8 @@ namespace core::db {
         const std::string name;
         const std::string detail;
         const long long status_id;
-        const std::string created_at;
-        const std::string updated_at;
+        const long long created_at;
+        const long long updated_at;
 
         friend class TaskTable;
 
@@ -414,8 +414,8 @@ namespace core::db {
              std::string name_,
              std::string detail_,
              long long status_id_,
-             std::string created_at_,
-             std::string updated_at_
+             long long created_at_,
+             long long updated_at_
         );
     };
 
@@ -474,10 +474,10 @@ namespace core::db {
         const long long id;
         const long long task_id;
         const std::string memo;
-        const std::string starting_time;
-        const std::string finishing_time;
-        const std::string created_at;
-        const std::string updated_at;
+        const long long starting_time;
+        const long long finishing_time;
+        const long long created_at;
+        const long long updated_at;
 
         friend class WorktimeTable;
 
@@ -486,10 +486,10 @@ namespace core::db {
             long long id_,
             long long task_id_,
             std::string memo_,
-            std::string starting_time_,
-            std::string finishing_time_,
-            std::string created_at_,
-            std::string updated_at_
+            long long starting_time_,
+            long long finishing_time_,
+            long long created_at_,
+            long long updated_at_
         );
     };
 
@@ -500,6 +500,10 @@ namespace core::db {
         const std::unordered_map<long long, Worktime>& getTable() const;
 
         const std::vector<long long>& getKeys() const;
+
+        int ensureOnlyOneActiveTask();
+
+        int selectActiveTask();
 
     private:
         void _mapper() override;
@@ -512,10 +516,10 @@ namespace core::db {
     public:
         const long long id;
         const long long task_id;
-        const std::string starting_time;
-        const std::string finishing_time;
-        const std::string created_at;
-        const std::string updated_at;
+        const long long starting_time;
+        const long long finishing_time;
+        const long long created_at;
+        const long long updated_at;
 
         friend class ScheduleTable;
 
@@ -523,10 +527,10 @@ namespace core::db {
         Schedule(
             long long id_,
             long long task_id_,
-            std::string starting_time_,
-            std::string finishing_time_,
-            std::string created_at_,
-            std::string updated_at_);
+            long long starting_time_,
+            long long finishing_time_,
+            long long created_at_,
+            long long updated_at_);
     };
 
     class ScheduleTable final : public DatabaseTable {

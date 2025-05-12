@@ -417,15 +417,15 @@ namespace core::db {
     }
 
 
-    Task::Task(): id(-1), parent_id(-1), status_id(0)
+    Task::Task(): id(-1), parent_id(-1), status_id(0), created_at(-1), updated_at(-1)
     {
     }
 
     Task::Task(const long long id_, const long long parent_id_, std::string name_, std::string detail_,
-               const long long status_id_, std::string created_at_,
-               std::string updated_at_): id(id_), parent_id(parent_id_), name(std::move(name_)),
-                                         detail(std::move(detail_)), status_id(status_id_),
-                                         created_at(std::move(created_at_)), updated_at(std::move(updated_at_))
+               const long long status_id_, const long long created_at_,
+               const long long updated_at_): id(id_), parent_id(parent_id_), name(std::move(name_)),
+                                             detail(std::move(detail_)), status_id(status_id_),
+                                             created_at(created_at_), updated_at(updated_at_)
     {
     }
 
@@ -599,29 +599,29 @@ namespace core::db {
                     getString(i.at("name")),
                     getString(i.at("detail")),
                     getLongLong(i.at("status_id")),
-                    getString(i.at("created_at")),
-                    getString(i.at("updated_at"))
+                    getLongLong(i.at("created_at")),
+                    getLongLong(i.at("updated_at"))
                 }));
         }
     }
 
-    Worktime::Worktime(const long long id_, const long long task_id_, std::string memo_, std::string starting_time_,
-                       std::string finishing_time_, std::string created_at_,
-                       std::string updated_at_): id(id_), task_id(task_id_), memo(std::move(memo_)),
-                                                 starting_time(std::move(starting_time_)),
-                                                 finishing_time(std::move(finishing_time_)),
-                                                 created_at(std::move(created_at_)), updated_at(std::move(updated_at_))
+    Worktime::Worktime(const long long id_, const long long task_id_, std::string memo_, const long long starting_time_,
+                       const long long finishing_time_, const long long created_at_,
+                       const long long updated_at_): id(id_), task_id(task_id_), memo(std::move(memo_)),
+                                                     starting_time(starting_time_),
+                                                     finishing_time(finishing_time_),
+                                                     created_at(created_at_), updated_at(updated_at_)
     {
     }
 
-    Schedule::Schedule(const long long id_, const long long task_id_, std::string starting_time_,
-                       std::string finishing_time_, std::string created_at_, std::string updated_at_):
+    Schedule::Schedule(const long long id_, const long long task_id_, const long long starting_time_,
+                       const long long finishing_time_, const long long created_at_, const long long updated_at_):
         id(id_),
         task_id(task_id_),
-        starting_time(std::move(starting_time_)),
-        finishing_time(std::move(finishing_time_)),
-        created_at(std::move(created_at_)),
-        updated_at(std::move(updated_at_))
+        starting_time(starting_time_),
+        finishing_time(finishing_time_),
+        created_at(created_at_),
+        updated_at(updated_at_)
     {
     }
 
@@ -652,10 +652,10 @@ namespace core::db {
                 Schedule({
                     getLongLong(i.at("id")),
                     getLongLong(i.at("task_id")),
-                    getString(i.at("starting_time")),
-                    getString(i.at("finishing_time")),
-                    getString(i.at("created_at")),
-                    getString(i.at("updated_at"))
+                    getLongLong(i.at("starting_time")),
+                    getLongLong(i.at("finishing_time")),
+                    getLongLong(i.at("created_at")),
+                    getLongLong(i.at("updated_at"))
                 })
             );
         }
@@ -679,6 +679,16 @@ namespace core::db {
 
     const std::vector<long long>& WorktimeTable::getKeys() const { return _keys; }
 
+    int WorktimeTable::ensureOnlyOneActiveTask()
+    {
+        return usePlaceholderUniSql(std::string(F_CHANGE_TO_ONLY_ONE_TASK_SQL, SIZE_CHANGE_TO_ONLY_ONE_TASK_SQL));
+    }
+
+    int WorktimeTable::selectActiveTask()
+    {
+        return usePlaceholderUniSql(std::string(F_SELECT_ACTIVE_TASK_SQL, SIZE_SELECT_ACTIVE_TASK_SQL));
+    }
+
     void WorktimeTable::_mapper()
     {
         _keys.clear();
@@ -691,10 +701,10 @@ namespace core::db {
                     getLongLong(i.at("id")),
                     getLongLong(i.at("task_id")),
                     getString(i.at("memo")),
-                    getString(i.at("starting_time")),
-                    getString(i.at("finishing_time")),
-                    getString(i.at("created_at")),
-                    getString(i.at("updated_at"))
+                    getLongLong(i.at("starting_time")),
+                    getLongLong(i.at("finishing_time")),
+                    getLongLong(i.at("created_at")),
+                    getLongLong(i.at("updated_at"))
                 }));
         }
     }
