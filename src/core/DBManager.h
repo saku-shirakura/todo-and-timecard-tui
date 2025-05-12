@@ -314,6 +314,12 @@ namespace core::db {
                                  std::string& sql_remaining_);
 
         /**
+         * @brief 単一のSQL文を実行します。usePlaceholderUniSql(sql_, {}, std::string())のエイリアスです。
+         * @note 詳細はusePlaceholderUniSql(sql_, placeholder_value_, sql_remaining_)を参照してください。
+         */
+        int usePlaceholderUniSql(const std::string& sql_, std::vector<ColValue> placeholder_value_ = {});
+
+        /**
          * @brief 全てのレコードを取得します。
          * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */
@@ -487,7 +493,7 @@ namespace core::db {
         );
     };
 
-    class WorktimeTable final : DatabaseTable {
+    class WorktimeTable final : public DatabaseTable {
     public:
         WorktimeTable();
 
@@ -523,7 +529,7 @@ namespace core::db {
             std::string updated_at_);
     };
 
-    class ScheduleTable final : DatabaseTable {
+    class ScheduleTable final : public DatabaseTable {
     public:
         ScheduleTable();
 

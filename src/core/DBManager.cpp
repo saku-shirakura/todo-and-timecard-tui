@@ -342,6 +342,12 @@ namespace core::db {
         return DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_, sql_remaining_);
     }
 
+    int DatabaseTable::usePlaceholderUniSql(const std::string& sql_, std::vector<ColValue> placeholder_value_)
+    {
+        std::string sql_remaining{};
+        return DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_, sql_remaining);
+    }
+
     int DatabaseTable::selectRecords() { return selectRecords("", {}); }
 
     int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_,
