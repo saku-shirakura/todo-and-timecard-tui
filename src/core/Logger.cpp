@@ -30,10 +30,7 @@ constexpr size_t max_log_size = 1 * 1024 * 1024;
 
 void Logger::initialize()
 {
-    if (_initialized)
-        return;
-    sqlite3_config(SQLITE_CONFIG_LOG, sqliteLoggingCallback, nullptr);
-    _initialized = true;
+    std::call_once(_initialized, _initialize);
 }
 
 
@@ -136,8 +133,10 @@ std::filesystem::path Logger::_getRotatePath(const size_t rotateNumber)
     return _log_file_path.parent_path() / (_log_file_path.stem().string() + "." + std::to_string(rotateNumber) +  _log_file_path.extension().string());
 }
 
+void Logger::_initialize() { sqlite3_config(SQLITE_CONFIG_LOG, sqliteLoggingCallback, nullptr); }
+
 std::ofstream Logger::_out;
-bool Logger::_initialized = false;
+std::once_flag Logger::_initialized;
 std::mutex Logger::_mtx;
 bool Logger::_success_prev_logging = true;
 std::filesystem::path Logger::_log_file_path{util::getDataPath("program.log")};

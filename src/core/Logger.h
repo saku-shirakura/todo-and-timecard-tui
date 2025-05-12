@@ -101,8 +101,10 @@ private:
 
     static std::filesystem::path _getRotatePath(size_t rotateNumber);
 
+    static void _initialize();
+
     static std::ofstream _out;
-    static bool _initialized;
+    static std::once_flag _initialized;
     static std::mutex _mtx;
     static bool _success_prev_logging;
     static std::filesystem::path _log_file_path;
