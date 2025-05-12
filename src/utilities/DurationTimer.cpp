@@ -35,10 +35,7 @@ DurationTimer::DurationTimer(const long long start_time_epoch_, const std::funct
     _start_time_epoch(start_time_epoch_), _on_update(on_update_
                                                          ? on_update_
                                                          : [] {
-                                                         })
-{
-    _thread = std::thread([&] { _threadProcess(); });
-}
+                                                         }) { _thread = std::thread([&] { _threadProcess(); }); }
 
 DurationTimer::DurationTimer(const std::chrono::seconds start_time_epoch_,
                              const std::function<void()>& on_update_): DurationTimer(
@@ -72,7 +69,10 @@ const std::string& DurationTimer::getText()
 void DurationTimer::setUpdateCallback(const std::function<void()>& on_update_)
 {
     std::lock_guard lock(_on_update_mtx);
-    _on_update = on_update_;
+    _on_update = on_update_
+                     ? on_update_
+                     : [] {
+                     };
 }
 
 void DurationTimer::_updateCallback() noexcept
