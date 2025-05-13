@@ -1,3 +1,4 @@
-SELECT SUM(COALESCE(worktime.finishing_time, STRFTIME('%s', DATETIME('now'))) - worktime.starting_time) AS sum_worktime
+SELECT COALESCE(SUM(COALESCE(worktime.finishing_time, STRFTIME('%s', DATETIME('now'))) - worktime.starting_time),
+                0) sum_worktime
 FROM worktime
 WHERE worktime.task_id = ?;
