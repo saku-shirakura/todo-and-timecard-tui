@@ -35,7 +35,6 @@ CREATE TABLE worktime
 (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id       INTEGER REFERENCES task (id) ON DELETE CASCADE NOT NULL,
-    memo           TEXT,
     starting_time INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
     finishing_time INTEGER          DEFAULT NULL,
     created_at    INTEGER                                        NOT NULL DEFAULT (strftime('%s', DATETIME('now'))),
