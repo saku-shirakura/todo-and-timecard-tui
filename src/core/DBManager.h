@@ -462,6 +462,13 @@ namespace core::db {
          */
         static std::pair<int, Task> fetchTask(long long task_id_);
 
+        /**
+         * @brief 合計作業時間を取得します。
+         * @param task_id_ 取得対象のタスクID
+         * @return <成功ステータス, 作業時間(秒)> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
+         */
+        static std::pair<int, std::chrono::seconds> fetchSumWorktime(long long task_id_);
+
     private:
         void _mapper() override;
 

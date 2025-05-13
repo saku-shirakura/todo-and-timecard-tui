@@ -585,6 +585,22 @@ namespace core::db {
         return {0, task};
     }
 
+    std::pair<int, std::chrono::seconds> TaskTable::fetchSumWorktime(long long task_id_)
+    {
+        using namespace std::chrono_literals;
+        TaskTable table;
+        int err = table.usePlaceholderUniSql(
+            std::string(F_SUM_WORKTIME_SQL, SIZE_SUM_WORKTIME_SQL),
+            {
+                {ColType::T_INTEGER, task_id_}
+            }
+        );
+        if (err != 0) return {err, -1s};
+        if (table.getRawTable().empty()) return {-1, -1s};
+        if (!table.getRawTable().front().contains("sum_worktime")) return {-2, -1s};
+        return {0, std::chrono::seconds(getLongLong(table.getRawTable().front().at("sum_worktime")))};
+    }
+
     void TaskTable::_mapper()
     {
         _keys.clear();
