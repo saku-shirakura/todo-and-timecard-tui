@@ -83,6 +83,15 @@ namespace util {
      * @return 文字数が`max_length_`を超えている場合省略したものを返します。
      */
     std::string ellipsisString(const std::string& str_, size_t max_length_, const std::string& ellipsis_ = " ...");
+
+    /**
+     * @brief 秒数を時間を表すテキストに変換します。
+     * @param seconds_ 秒数
+     * @param ellipsis_ このフラグが有効な倍上位2桁のみをテキストに出力します。
+     * @returns ellipsis_がtrueなら、01Y02Mのような時間を表すテキスト。
+     * @returns そうでないなら、01Y02M03D00h01m02sのような時間を表すテキスト
+     */
+    std::string timeTextFromSeconds(std::chrono::seconds seconds_, bool ellipsis_ = false);
 }
 
 #endif //UTILITIES_H

@@ -22,6 +22,8 @@
 
 #include "Utilities.h"
 
+#include <format>
+
 
 std::string util::getEnv(const std::string& variable_name_, const std::string& default_value_)
 {
@@ -127,4 +129,33 @@ std::string util::ellipsisString(const std::string& str_, const size_t max_lengt
     const size_t ellipsis_excluded_length = max_length_ - actual_ellipsis_length;
 
     return utf8FitStrLength(str_, ellipsis_excluded_length) + ellipsis_;
+}
+
+std::string util::timeTextFromSeconds(const std::chrono::seconds seconds_, bool ellipsis_)
+{
+    using namespace std::chrono_literals;
+    const auto seconds = seconds_.count() % 60;
+    const auto minutes = std::chrono::duration_cast<std::chrono::minutes>(seconds_).count() % 60;
+    const auto hours = std::chrono::duration_cast<std::chrono::hours>(seconds_).count() % 24;
+    const auto days = std::chrono::duration_cast<std::chrono::days>(seconds_).count() % 30;
+    const auto months = std::chrono::duration_cast<std::chrono::months>(seconds_).count() % 12;
+    const auto years = std::chrono::duration_cast<std::chrono::years>(seconds_).count();
+
+    if (years > 0) {
+        if (ellipsis_) return std::format("{:02}Y{:02}M", years, months);
+        return std::format("{:02}Y{:02}M{:02}D{:02}h{:02}m{:02}s", years, months, days, hours, minutes, seconds);
+    }
+    if (months > 0) {
+        if (ellipsis_) return std::format("{:02}M{:02}D", months, days);
+        return std::format("{:02}M{:02}D{:02}h{:02}m{:02}s", months, days, hours, minutes, seconds);
+    }
+    if (days > 0) {
+        if (ellipsis_) return std::format("{:02}D{:02}h", days, hours);
+        return std::format("{:02}D{:02}h{:02}m{:02}s", days, hours, minutes, seconds);
+    }
+    if (hours > 0) {
+        if (ellipsis_) return std::format("{:02}h{:02}m", hours, minutes);
+        return std::format("{:02}h{:02}m{:02}s", hours, minutes, seconds);
+    }
+    return std::format("{:02}m{:02}s", minutes, seconds);
 }

@@ -22,6 +22,8 @@
 
 #include "DurationTimer.h"
 
+#include "Utilities.h"
+
 
 DurationTimer::DurationTimer(const long long start_time_epoch_): DurationTimer(start_time_epoch_, nullptr)
 {
@@ -88,21 +90,10 @@ void DurationTimer::_updateCallback() noexcept
 void DurationTimer::_updateText()
 {
     std::lock_guard lock(_update_text_mtx);
-    using namespace std::chrono_literals;
     const auto now_time_point = std::chrono::system_clock::now();
     const auto now_seconds = std::chrono::duration_cast<std::chrono::seconds>(now_time_point.time_since_epoch());
     const auto raw_seconds = now_seconds - _start_time_epoch;
-    const auto seconds = raw_seconds.count() % 60;
-    const auto minutes = std::chrono::duration_cast<std::chrono::minutes>(raw_seconds).count() % 60;
-    const auto hours = std::chrono::duration_cast<std::chrono::hours>(raw_seconds).count() % 24;
-    const auto days = std::chrono::duration_cast<std::chrono::days>(raw_seconds).count() % 30;
-    const auto months = std::chrono::duration_cast<std::chrono::months>(raw_seconds).count() % 12;
-    const auto years = std::chrono::duration_cast<std::chrono::years>(raw_seconds).count();
-    if (years > 0) { _duration_text = std::format("{:02}Y{:02}M", years, months); }
-    else if (months > 0) { _duration_text = std::format("{:02}M{:02}D", months, days); }
-    else if (days > 0) { _duration_text = std::format("{:02}D{:02}h", days, hours); }
-    else if (hours > 0) { _duration_text = std::format("{:02}h{:02}m", hours, minutes); }
-    else { _duration_text = std::format("{:02}m{:02}s", minutes, seconds); }
+    _duration_text = util::timeTextFromSeconds(raw_seconds, true);
 }
 
 void DurationTimer::_threadProcess()
