@@ -89,7 +89,7 @@ void DurationTimer::_updateText()
 {
     std::lock_guard lock(_update_text_mtx);
     using namespace std::chrono_literals;
-    const auto now_time_point = std::chrono::utc_clock::now();
+    const auto now_time_point = std::chrono::system_clock::now();
     const auto now_seconds = std::chrono::duration_cast<std::chrono::seconds>(now_time_point.time_since_epoch());
     const auto raw_seconds = now_seconds - _start_time_epoch;
     const auto seconds = raw_seconds.count() % 60;
