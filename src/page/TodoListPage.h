@@ -35,7 +35,7 @@
 #include <string>
 #include <vector>
 
-#include "../../cmake-build-release/_deps/ftxui-src/include/ftxui/component/screen_interactive.hpp"
+#include "ftxui/component/screen_interactive.hpp"
 #include "../components/Console.h"
 #include "../core/DBManager.h"
 
