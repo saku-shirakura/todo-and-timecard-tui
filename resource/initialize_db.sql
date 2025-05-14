@@ -78,13 +78,9 @@ VALUES (1, 'Progress'),
        (3, 'Complete'),
        (4, 'Not planned');
 
-CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);
-CREATE INDEX idx_parent_id ON task (parent_id);
-CREATE INDEX idx_worktime_time_per_task ON worktime (task_id, starting_time, finishing_time);
-CREATE INDEX idx_schedule_time_per_task ON schedule (task_id, starting_time, finishing_time);
-
 CREATE VIEW total_worktime_group_by_task AS
-SELECT task.parent_id parent_task,
+SELECT ROWID AS       id,
+       task.parent_id parent_task,
        task.id AS     task_id,
        COALESCE(
                SUM(worktime.finishing_time - worktime.starting_time), 0
@@ -92,3 +88,8 @@ SELECT task.parent_id parent_task,
 FROM worktime
          LEFT OUTER JOIN task ON task.id = task_id
 GROUP BY task_id;
+
+CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);
+CREATE INDEX idx_parent_id ON task (parent_id);
+CREATE INDEX idx_worktime_time_per_task ON worktime (task_id, starting_time, finishing_time);
+CREATE INDEX idx_schedule_time_per_task ON schedule (task_id, starting_time, finishing_time);

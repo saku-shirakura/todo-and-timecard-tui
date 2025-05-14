@@ -469,6 +469,12 @@ namespace core::db {
          */
         static std::pair<int, std::chrono::seconds> fetchTotalWorktime(long long task_id_);
 
+        static std::pair<int, Task> fetchLastTask(long long parent_id);
+
+        static int newTask(long long parent_id);
+
+        static int deleteTask(long long task_id);
+
     private:
         void _mapper() override;
 

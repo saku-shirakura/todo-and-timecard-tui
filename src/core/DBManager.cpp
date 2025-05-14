@@ -601,6 +601,43 @@ namespace core::db {
         return {0, std::chrono::seconds(getLongLong(table.getRawTable().front().at("total_worktime")))};
     }
 
+    std::pair<int, Task> TaskTable::fetchLastTask(const long long parent_id)
+    {
+        TaskTable table;
+        auto placeholder = std::vector<ColValue>();
+
+        std::string where = "parent_id = ?";
+        if (parent_id <= 0) where = "parent_id IS NULL";
+        else placeholder.emplace_back(ColType::T_INTEGER, parent_id);
+
+        const int err = table.selectRecords(where, placeholder, "id DESC", 1, 0);
+
+        if (err != 0) return {err, Task()};
+        if (table.getKeys().empty() || table.getTable().empty()) return {-1, Task()};
+        return {0, table.getTable().at(table.getKeys().front())};
+    }
+
+    int TaskTable::newTask(long long parent_id)
+    {
+        TaskTable table;
+        const int err = table.usePlaceholderUniSql(
+            "INSERT INTO task(parent_id, name, status_id) VALUES (?, 'New Task', 2);", {
+                (parent_id <= 0 ? ColValue(ColType::T_NULL, nullptr) : ColValue(ColType::T_INTEGER, parent_id))
+            }
+        );
+        if (err != 0) return err;
+        return 0;
+    }
+
+    int TaskTable::deleteTask(const long long task_id)
+    {
+        TaskTable tbl;
+        return tbl.usePlaceholderUniSql(
+            "DELETE FROM task WHERE id = ?;",
+            {{ColType::T_INTEGER, task_id}}
+        );
+    }
+
     void TaskTable::_mapper()
     {
         _keys.clear();
