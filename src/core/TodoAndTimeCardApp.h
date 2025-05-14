@@ -36,7 +36,7 @@
 namespace core {
     class TodoAndTimeCardApp {
     public:
-        TodoAndTimeCardApp() = default;
+        TodoAndTimeCardApp() = delete;
 
         static void execute();
 

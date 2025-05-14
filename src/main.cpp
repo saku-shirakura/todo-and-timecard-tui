@@ -33,10 +33,10 @@ int main()
     }
     Logger::log_level = Logger::LogLevel::DEBUG;
 #endif
+    Logger::log_level = Logger::LogLevel::INFO;
     Logger::initialize();
     Logger::info("start application.", "main");
-    core::TodoAndTimeCardApp app;
-    app.execute();
+    core::TodoAndTimeCardApp::execute();
     Logger::info("finish application.", "main");
     return 0;
 }
