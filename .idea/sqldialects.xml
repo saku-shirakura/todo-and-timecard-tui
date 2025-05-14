@@ -6,6 +6,6 @@
     <file url="file://$PROJECT_DIR$/resource/initialize_db.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/open_db_preproc.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/select_active_task.sql" dialect="SQLite" />
-    <file url="file://$PROJECT_DIR$/resource/sum_worktime.sql" dialect="SQLite" />
+    <file url="file://$PROJECT_DIR$/resource/sum_total_worktime.sql" dialect="SQLite" />
   </component>
 </project>
