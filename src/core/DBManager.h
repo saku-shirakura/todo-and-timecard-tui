@@ -486,7 +486,6 @@ namespace core::db {
     public:
         const long long id;
         const long long task_id;
-        const std::string memo;
         const long long starting_time;
         const long long finishing_time;
         const long long created_at;
@@ -498,7 +497,6 @@ namespace core::db {
         Worktime(
             long long id_,
             long long task_id_,
-            std::string memo_,
             long long starting_time_,
             long long finishing_time_,
             long long created_at_,

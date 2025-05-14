@@ -658,9 +658,9 @@ namespace core::db {
         }
     }
 
-    Worktime::Worktime(const long long id_, const long long task_id_, std::string memo_, const long long starting_time_,
+    Worktime::Worktime(const long long id_, const long long task_id_, const long long starting_time_,
                        const long long finishing_time_, const long long created_at_,
-                       const long long updated_at_): id(id_), task_id(task_id_), memo(std::move(memo_)),
+                       const long long updated_at_): id(id_), task_id(task_id_),
                                                      starting_time(starting_time_),
                                                      finishing_time(finishing_time_),
                                                      created_at(created_at_), updated_at(updated_at_)
@@ -782,7 +782,6 @@ namespace core::db {
                 Worktime({
                     getLongLong(i.at("id")),
                     getLongLong(i.at("task_id")),
-                    getString(i.at("memo")),
                     getLongLong(i.at("starting_time")),
                     getLongLong(i.at("finishing_time")),
                     getLongLong(i.at("created_at")),
