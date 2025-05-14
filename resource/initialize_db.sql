@@ -79,7 +79,7 @@ VALUES (1, 'Progress'),
        (4, 'Not planned');
 
 CREATE VIEW total_worktime_group_by_task AS
-SELECT ROWID AS       id,
+SELECT row_number() AS id,
        task.parent_id parent_task,
        task.id AS     task_id,
        COALESCE(
