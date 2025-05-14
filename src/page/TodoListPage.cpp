@@ -41,14 +41,24 @@ namespace pages {
     TodoListPage::TodoListPage()
     {
         _page_container = ftxui::Container::Vertical({});
-        const ftxui::Component task_list_view = components::TaskListView([&](const std::string& msg) {
+        _task_list_view = components::TaskListView([&](const std::string& msg) {
             _console_data->printConsole(msg);
         });
-        const ftxui::Component console = components::Console(_console_data);
 
-        _page_container->Add(task_list_view);
-        _page_container->Add(console);
+        _console = components::Console(_console_data);
+
+        _page_container->Add(_task_list_view);
+        _page_container->Add(_console);
     }
 
-    ftxui::Component TodoListPage::getComponent() { return _page_container; }
+    ftxui::Component TodoListPage::getComponent() const
+    {
+        return Renderer(_page_container, [&] {
+            return vbox(
+                _task_list_view->Render(),
+                ftxui::separator(),
+                _console->Render()
+            ) | size(ftxui::HEIGHT, ftxui::EQUAL, 30) | size(ftxui::WIDTH, ftxui::EQUAL, 120);
+        });
+    }
 } // pages

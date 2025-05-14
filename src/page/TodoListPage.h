@@ -44,11 +44,13 @@ namespace pages {
     public:
         TodoListPage();
 
-        ftxui::Component getComponent();
+        ftxui::Component getComponent() const;
 
     private:
         ftxui::Component _page_container;
         std::shared_ptr<components::ConsoleData> _console_data{new components::ConsoleData};
+        ftxui::Component _task_list_view;
+        ftxui::Component _console;
     };
 } // pages
 
