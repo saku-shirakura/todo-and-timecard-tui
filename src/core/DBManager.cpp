@@ -533,8 +533,8 @@ namespace core::db {
 
         // SQLを動的に組み立てる
         // docs/taskFromPageNumber.sqlに記載
-        sql = "SELECT row_id / " + std::to_string(per_page_) + " + 1 AS page_num,";
-        sql += " row_id % " + std::to_string(per_page_) + " - 1 AS page_pos";
+        sql = "SELECT (row_id - 1) / " + std::to_string(per_page_) + " + 1 AS page_num,";
+        sql += " (row_id - 1) % " + std::to_string(per_page_) + " AS page_pos";
         sql += " FROM (";
         sql += " SELECT id, row_number() over (ORDER BY status_id, name) AS row_id";
         sql += " FROM task WHERE parent_id";
