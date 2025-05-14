@@ -705,7 +705,7 @@ namespace core::db {
     {
         WorktimeTable table;
         return table.usePlaceholderUniSql(
-            "UPDATE worktime SET finishing_time = (DATETIME('now', 'unixepoch')) WHERE finishing_time IS NULL ORDER BY id DESC;");
+            "UPDATE worktime SET finishing_time = (strftime('%s', DATETIME('now'))) WHERE finishing_time IS NULL ORDER BY id DESC;");
     }
 
     int WorktimeTable::selectActiveTask()
