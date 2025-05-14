@@ -79,15 +79,14 @@ VALUES (1, 'Progress'),
        (4, 'Not planned');
 
 CREATE VIEW total_worktime_group_by_task AS
-SELECT row_number() AS id,
-       task.parent_id parent_task,
-       task.id AS     task_id,
+SELECT task.parent_id parent_task,
+       worktime.task_id,
        COALESCE(
                SUM(worktime.finishing_time - worktime.starting_time), 0
        )              total_worktime
 FROM worktime
-         LEFT OUTER JOIN task ON task.id = task_id
-GROUP BY task_id;
+         LEFT OUTER JOIN task ON task.id = worktime.task_id
+GROUP BY worktime.task_id;
 
 CREATE INDEX idx_task_status_id_per_parent ON task (parent_id, status_id);
 CREATE INDEX idx_parent_id ON task (parent_id);
