@@ -32,6 +32,7 @@
 #ifndef DURATIONTIMER_H
 #define DURATIONTIMER_H
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <string>
 #include <thread>
@@ -60,6 +61,14 @@ public:
 
     void setUpdateCallback(const std::function<void()>& on_update_);
 
+    std::chrono::seconds getSeconds() const;
+
+    void stop();
+
+    void start();
+
+    bool isActive() const;
+
 private:
     void _updateCallback() noexcept;
 
@@ -69,11 +78,16 @@ private:
 
     std::thread _thread;
     std::chrono::seconds _start_time_epoch;
+    std::chrono::seconds _duration_seconds;
     std::string _duration_text{};
     std::function<void()> _on_update{};
 
     std::mutex _update_text_mtx;
     std::mutex _on_update_mtx;
+    std::mutex _stop_timer_mtx;
+
+    std::condition_variable _active_condition;
+    bool _active{false};
 
     bool _loop{true};
 };

@@ -77,6 +77,19 @@ void DurationTimer::setUpdateCallback(const std::function<void()>& on_update_)
                      };
 }
 
+std::chrono::seconds DurationTimer::getSeconds() const { return _duration_seconds; }
+
+void DurationTimer::stop() { _active = false; }
+
+void DurationTimer::start()
+{
+    if (_active) return;
+    _active = true;
+    _active_condition.notify_one();
+}
+
+bool DurationTimer::isActive() const { return _active; }
+
 void DurationTimer::_updateCallback() noexcept
 {
     try {
@@ -92,14 +105,18 @@ void DurationTimer::_updateText()
     std::lock_guard lock(_update_text_mtx);
     const auto now_time_point = std::chrono::system_clock::now();
     const auto now_seconds = std::chrono::duration_cast<std::chrono::seconds>(now_time_point.time_since_epoch());
-    const auto raw_seconds = now_seconds - _start_time_epoch;
-    _duration_text = util::timeTextFromSeconds(raw_seconds, true);
+    _duration_seconds = now_seconds - _start_time_epoch;
+    _duration_text = util::timeTextFromSeconds(_duration_seconds, true);
 }
 
 void DurationTimer::_threadProcess()
 {
     using namespace std::chrono_literals;
     while (_loop) {
+        if (!_active) {
+            std::unique_lock lock(_stop_timer_mtx);
+            _active_condition.wait(lock, [&] { return _active; });
+        }
         _updateText();
         _updateCallback();
         std::this_thread::sleep_for(500ms);
