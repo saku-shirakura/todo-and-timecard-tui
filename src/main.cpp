@@ -32,8 +32,9 @@ int main()
         Logger::error("Failed to change database file path.", "main");
     }
     Logger::log_level = Logger::LogLevel::DEBUG;
-#endif
+#else
     Logger::log_level = Logger::LogLevel::INFO;
+#endif
     Logger::initialize();
     Logger::info("start application.", "main");
     core::TodoAndTimeCardApp::execute();
