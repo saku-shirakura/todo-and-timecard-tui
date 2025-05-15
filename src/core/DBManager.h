@@ -467,13 +467,17 @@ namespace core::db {
          * @param task_id_ 取得対象のタスクID
          * @return <成功ステータス, 作業時間(秒)> 成功ステータスで0以外の値が返った場合、エラーが発生しています。
          */
-        static std::pair<int, std::chrono::seconds> fetchTotalWorktime(long long task_id_);
+        static std::pair<int, std::chrono::seconds> computeTotalWorktime(long long task_id_);
+
+        static std::pair<int, std::chrono::seconds> fetchWorktime(long long task_id_);
 
         static std::pair<int, Task> fetchLastTask(long long parent_id);
 
         static int newTask(long long parent_id);
 
         static int deleteTask(long long task_id);
+
+        static bool computeIsSiblings(long long sibling_task_id, long long parent_id);
 
     private:
         void _mapper() override;
