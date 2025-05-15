@@ -1,20 +1,27 @@
 # todo-and-timecard-tui
 
-This README.MD is WIP.
+## Overview
 
-## about
+Simple task management and work time management software using FTXUI
 
-## How to delte task?
+## Build
 
-If you want to delete the task.
+WIP
 
-Please follow the steps below.
+## How to delete a task?
 
-1. Change the status to `Not planned`.
-2. The Delete button will appear, click it.
+If you want to delete a task, follow the steps below.
 
-## dependencies
+1. Change the task to `Not planned` from the task details area.
 
-This project depends on several open-source libraries.
+2. The Delete button will appear.
 
-Please see the [Notice](./NOTICE) for license information.
+## Dependencies
+
+This software uses some open source software.
+
+Please refer to the [Notice](./NOTICE) for license information of the software used.
+
+## Original
+
+Original Text: [日本語](./JP.README.MD)
