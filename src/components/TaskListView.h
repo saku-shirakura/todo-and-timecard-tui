@@ -218,6 +218,8 @@ namespace components {
 
         void updateTotalWorktime();
 
+        void updateTaskWorktime();
+
     private:
         void _deleteTask();
 
@@ -243,7 +245,9 @@ namespace components {
         std::string _task_name;
         int _selected_status{1};
         std::string _task_detail;
+        bool _is_active_task_family{false};
         std::chrono::seconds _total_worktime{0};
+        std::chrono::seconds _task_worktime{0};
         static const std::vector<std::string> TASK_STATUS;
     };
 

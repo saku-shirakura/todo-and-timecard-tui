@@ -191,11 +191,13 @@ namespace components {
         const long long id = getSelectedTaskId();
         if (id <= 0) return;
         _parent_id = id;
+        setStatusFilter(0);
         resetPage();
     }
 
     void TaskListViewData::selectTask(const long long task_id_)
     {
+        setStatusFilter(0);
         if (task_id_ <= 0) return;
         const auto [err, val] = core::db::TaskTable::fetchPageNumAndFocusFromTask(
             task_id_, _status_filter, per_page);
@@ -242,7 +244,6 @@ namespace components {
 
     void TaskListViewData::parentHistoryBack()
     {
-        setStatusFilter(0);
         selectTask(_parent_id);
     }
 
@@ -356,7 +357,6 @@ namespace components {
             if (insert_err != 0) return;
             auto [select_err, task] = core::db::TaskTable::fetchLastTask(_data.getParentId());
             if (select_err != 0) return;
-            _data.setStatusFilter(0);
             _data.selectTask(task.id);
         };
 
@@ -539,7 +539,6 @@ namespace components {
 
     TaskDetailBase::TaskDetailBase(TaskListViewBase* tasklist_view_base_): _tasklist_view_base(tasklist_view_base_)
     {
-        selectedTaskChanged();
         _active_task = ftxui::Make<ActiveTask>([&] { _jumpButtonOnClick(); });
         _task_name_input = ftxui::Input(
             &_task_name, "name"
@@ -553,28 +552,42 @@ namespace components {
         ) | ftxui::frame | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 10) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 56);
 
         _worktime_summary = ftxui::Renderer([&] {
-            const long long id = _tasklist_view_base->_data.getSelectedTaskId();
-            if (_active_task->getActiveTaskId() == id)
-                return ftxui::text(util::timeTextFromSeconds(_total_worktime + _active_task->getSeconds()));
-            return ftxui::text(util::timeTextFromSeconds(_total_worktime));
+            std::string str_time{};
+            // アクティブタスクが選択中のタスクの子孫または選択中のタスクであれば、作業時間を加算する。
+            std::chrono::seconds tmp_total_worktime = _total_worktime;
+            if (_is_active_task_family)
+                tmp_total_worktime += _active_task->getSeconds();
+            str_time = util::timeTextFromSeconds(tmp_total_worktime);
+            // 選択中タスク単体の作業時間
+            std::chrono::seconds tmp_total_task_worktime = _task_worktime;
+            if (_active_task->getActiveTaskId() == this->_tasklist_view_base->_data.getSelectedTaskId())
+                tmp_total_task_worktime += _active_task->getSeconds();
+            str_time += " (In: " + util::timeTextFromSeconds(tmp_total_task_worktime) + ")";
+            return ftxui::text(str_time);
         });
 
         _activate_task_button = ftxui::Button("activate", [&] {
             const long long id = this->_tasklist_view_base->_data.
                                        getSelectedTaskId();
-            if (id > 0 && _active_task->getActiveTaskId() != id)
+            if (id > 0 && _active_task->getActiveTaskId() != id) {
                 _active_task->activate(id);
+                _is_active_task_family = true;
+            }
         }) | ftxui::Maybe([&] { return this->_isNotCurrentTaskActivated(); });
 
         _deactivate_task_button = ftxui::Button("deactivate", [&] {
             _active_task->deactivate();
             updateTotalWorktime();
+            updateTaskWorktime();
+            _is_active_task_family = false;
         }) | ftxui::Maybe([&] { return this->_isCurrentTaskActivated(); });
 
         _update_button = ftxui::Button("update", [&] { _updateTask(); });
 
         _delete_button = ftxui::Button("delete", [&] { _deleteTask(); }, ftxui::ButtonOption::Ascii()) | ftxui::Maybe(
             [&] { return this->_selected_status == 3; }) | ftxui::color(ftxui::Color::Red);
+
+        selectedTaskChanged();
 
         const auto detail_container = ftxui::Container::Vertical({});
         detail_container->Add(_task_name_input);
@@ -636,15 +649,27 @@ namespace components {
         _selected_status = static_cast<int>(status) - 1;
         _task_detail = _tasklist_view_base->_data.getSelectedTaskDetail();
         updateTotalWorktime();
+        updateTaskWorktime();
+        const long long id = _tasklist_view_base->_data.getSelectedTaskId();
+        _is_active_task_family = core::db::TaskTable::computeIsSiblings(_active_task->getActiveTaskId(), id);
     }
 
     void TaskDetailBase::updateTotalWorktime()
     {
         using namespace std::chrono_literals;
-        const auto [err, seconds] = core::db::TaskTable::fetchTotalWorktime(
+        const auto [err, seconds] = core::db::TaskTable::computeTotalWorktime(
             _tasklist_view_base->_data.getSelectedTaskId());
         if (err != 0) _total_worktime = 0s;
         else _total_worktime = seconds;
+    }
+
+    void TaskDetailBase::updateTaskWorktime()
+    {
+        using namespace std::chrono_literals;
+        const auto [err, seconds] = core::db::TaskTable::fetchWorktime(
+            _tasklist_view_base->_data.getSelectedTaskId());
+        if (err != 0) _task_worktime = 0s;
+        else _task_worktime = seconds;
     }
 
     void TaskDetailBase::_deleteTask()
@@ -668,13 +693,11 @@ namespace components {
                                                        {core::db::ColType::T_INTEGER, id}
                                                    });
         if (err != 0) return;
-        _tasklist_view_base->_data.setStatusFilter(0);
         _tasklist_view_base->_data.selectTask(id);
     }
 
     void TaskDetailBase::_jumpButtonOnClick() const
     {
-        this->_tasklist_view_base->_data.setStatusFilter(0);
         this->_tasklist_view_base->_data.selectTask(_active_task->getActiveTaskId());
     }
 
