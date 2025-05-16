@@ -544,7 +544,9 @@ namespace components {
             &_task_name, "name"
         ) | ftxui::frame | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 56);
 
-        _task_status_toggle = ftxui::Toggle(&TaskDetailBase::TASK_STATUS, &_selected_status);
+        auto taskStatusToggleOption = ftxui::MenuOption::Toggle();
+        taskStatusToggleOption.focused_entry = &_focused_status;
+        _task_status_toggle = ftxui::Menu(&TaskDetailBase::TASK_STATUS, &_selected_status, taskStatusToggleOption);
 
         _task_detail_input = ftxui::Input(&_task_detail, "detail", {
                                               .multiline = true
@@ -629,7 +631,7 @@ namespace components {
                         _activate_task_button->Render(),
                         _deactivate_task_button->Render(),
                         _update_button->Render(),
-                        _delete_button->Render()
+                        hbox(filler(), _delete_button->Render())
                     ) | yframe
             ) | flex_grow;
     }
@@ -647,6 +649,7 @@ namespace components {
         }
         _task_name = _tasklist_view_base->_data.getSelectedTaskName();
         _selected_status = static_cast<int>(status) - 1;
+        _focused_status = static_cast<int>(status) - 1;
         _task_detail = _tasklist_view_base->_data.getSelectedTaskDetail();
         updateTotalWorktime();
         updateTaskWorktime();
