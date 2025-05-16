@@ -10,6 +10,8 @@ Simple task management and work time management software using FTXUI
 
 `todo-and-timecard-tui --version` or `todo-and-timecard-tui -v`: Show the software version.
 
+`todo-and-timecard-tui --help`: Show the help.
+
 `todo-and-timecard-tui --license`: Show the license.
 
 `todo-and-timecard-tui --notice`: Show the contents of the [Notice](./NOTICE) file.

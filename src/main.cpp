@@ -46,7 +46,7 @@ void startup()
 
 bool executeOption(std::vector<std::string> args)
 {
-    const std::vector<std::string> options{"--version", "--v", "--license", "--notice"};
+    const std::vector<std::string> options{"--version", "--v", "--help", "--license", "--notice"};
     for (const auto& option : options) {
         if (std::ranges::find(args, option) != args.end()) {
             if (option == "--version" || option == "-v") {
@@ -55,6 +55,14 @@ bool executeOption(std::vector<std::string> args)
                 std::cout << ".debug";
 #endif
                 std::cout << std::endl;
+            }
+            else if (option == "--help") {
+                std::cout << R"(Usage:
+    todo-and-timecard-tui           : Start the software.
+    todo-and-timecard-tui --version : Show the software version.
+    todo-and-timecard-tui --license : Show the license.
+    todo-and-timecard-tui --notice  : Show the contents of the Notice file.)"
+                    << std::endl;
             }
             else if (option == "--license") { std::cout << std::string(F_LICENSE_, SIZE_LICENSE_) << std::endl; }
             else if (option == "--notice") { std::cout << std::string(F_NOTICE_, SIZE_NOTICE_) << std::endl; }

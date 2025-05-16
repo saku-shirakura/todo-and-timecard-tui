@@ -10,6 +10,8 @@ FTXUIを使ったシンプルなタスク管理・作業時間管理ソフトウ
 
 `todo-and-timecard-tui --version` or `todo-and-timecard-tui -v`: ソフトウェアのバージョンを表示します。
 
+`todo-and-timecard-tui --help`: ヘルプを表示します。
+
 `todo-and-timecard-tui --license`: ライセンスを表示します。
 
 `todo-and-timecard-tui --notice`: Noticeファイルの内容を表示します。
