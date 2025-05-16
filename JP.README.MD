@@ -4,9 +4,21 @@
 
 FTXUIを使ったシンプルなタスク管理・作業時間管理ソフトウェア
 
+## 使用方法
+
+`todo-and-timecard-tui`: ソフトウェアを起動します。
+
+`todo-and-timecard-tui --version` or `todo-and-timecard-tui -v`: ソフトウェアのバージョンを表示します。
+
+`todo-and-timecard-tui --license`: ライセンスを表示します。
+
+`todo-and-timecard-tui --notice`: Noticeファイルの内容を表示します。
+
 ## ビルド
 
-WIP
+リソースのバンドル: file-bundler -i resource -o src -y -t FileBundlerTarget
+
+(WIP)
 
 ## タスクを削除するには？
 

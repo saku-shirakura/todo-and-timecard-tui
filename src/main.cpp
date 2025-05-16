@@ -21,10 +21,13 @@
 // SOFTWARE.
 
 
+#include <iostream>
+
+#include "resource.h"
 #include "core/Logger.h"
 #include "core/TodoAndTimeCardApp.h"
 
-int main()
+void startup()
 {
 #ifndef NDEBUG
     Logger::setLogFilePath("dev.log");
@@ -39,5 +42,33 @@ int main()
     Logger::info("start application.", "main");
     core::TodoAndTimeCardApp::execute();
     Logger::info("finish application.", "main");
+}
+
+bool executeOption(std::vector<std::string> args)
+{
+    const std::vector<std::string> options{"--version", "--v", "--license", "--notice"};
+    for (const auto& option : options) {
+        if (std::ranges::find(args, option) != args.end()) {
+            if (option == "--version" || option == "-v") {
+                std::cout << std::string(F_VERSION_, SIZE_VERSION_);
+#ifndef NDEBUG
+                std::cout << ".debug";
+#endif
+                std::cout << std::endl;
+            }
+            else if (option == "--license") { std::cout << std::string(F_LICENSE_, SIZE_LICENSE_) << std::endl; }
+            else if (option == "--notice") { std::cout << std::string(F_NOTICE_, SIZE_NOTICE_) << std::endl; }
+            return true;
+        }
+    }
+    return false;
+}
+
+// ReSharper disable once CppDFAConstantFunctionResult
+int main(const int argc, char** argv)
+{
+    const std::vector<std::string> args(argv, argv + argc);
+    if (executeOption(args)) return 0;
+    startup();
     return 0;
 }
