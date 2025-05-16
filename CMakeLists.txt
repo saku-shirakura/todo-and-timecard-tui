@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
-project(todo_and_timecard_tui)
+project(todo-and-timecard-tui)
 
 include(FetchContent)
 
@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(dependencies/sqlite3)
 
-add_executable(todo_and_timecard_tui src/main.cpp
+add_executable(todo-and-timecard-tui src/main.cpp
         src/core/TodoAndTimeCardApp.cpp
         src/core/TodoAndTimeCardApp.h
         src/page/TodoListPage.cpp
@@ -36,5 +36,5 @@ add_executable(todo_and_timecard_tui src/main.cpp
         src/utilities/DurationTimer.h
 )
 
-target_link_libraries(todo_and_timecard_tui PRIVATE ftxui::dom ftxui::component sqlite3)
-target_include_directories(todo_and_timecard_tui PRIVATE ${ftxui_SOURCE_DIR}/include)
+target_link_libraries(todo-and-timecard-tui PRIVATE ftxui::dom ftxui::component sqlite3)
+target_include_directories(todo-and-timecard-tui PRIVATE ${ftxui_SOURCE_DIR}/include)
