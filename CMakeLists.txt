@@ -36,5 +36,9 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/utilities/DurationTimer.h
 )
 
+set_target_properties(todo-and-timecard-tui PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
 target_link_libraries(todo-and-timecard-tui PRIVATE ftxui::dom ftxui::component sqlite3)
 target_include_directories(todo-and-timecard-tui PRIVATE ${ftxui_SOURCE_DIR}/include)
