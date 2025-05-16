@@ -82,12 +82,11 @@ jobs:
       uses: thedoctor0/zip-release@0.7.6
       with:
         type: 'zip'
-        filename: release-windows.zip
+        filename: "${{ matrix.build_type }}-${{ matrix.os }}-${{ matrix.c_compiler }}.zip"
         path: "${{ steps.strings.outputs.build-output-dir }}/bin"
-        directory: ${{ steps.strings.outputs.build-output-dir }}
 
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: "${{ steps.strings.outputs.build-output-dir }}/${{ matrix.build_type }}-${{ matrix.os }}-${{ matrix.c_compiler }}.zip"
+        files: "./${{ matrix.build_type }}-${{ matrix.os }}-${{ matrix.c_compiler }}.zip"
