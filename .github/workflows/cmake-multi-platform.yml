@@ -84,9 +84,10 @@ jobs:
         type: 'zip'
         filename: release-windows.zip
         path: "${{ steps.strings.outputs.build-output-dir }}/bin"
+        directory: ${{ steps.strings.outputs.build-output-dir }}
 
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: "./${{ matrix.build_type }}-${{ matrix.os }}-${{ matrix.c_compiler }}.zip"
+        files: "${{ steps.strings.outputs.build-output-dir }}/${{ matrix.build_type }}-${{ matrix.os }}-${{ matrix.c_compiler }}.zip"
