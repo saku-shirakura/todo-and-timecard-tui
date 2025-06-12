@@ -61,13 +61,13 @@ public:
 
     void setUpdateCallback(const std::function<void()>& on_update_);
 
-    std::chrono::seconds getSeconds() const;
+    [[nodiscard]] std::chrono::seconds getSeconds() const;
 
     void stop();
 
     void start();
 
-    bool isActive() const;
+    [[nodiscard]] bool isActive() const;
 
 private:
     void _updateCallback() noexcept;
@@ -78,7 +78,7 @@ private:
 
     std::thread _thread;
     std::chrono::seconds _start_time_epoch;
-    std::chrono::seconds _duration_seconds;
+    std::chrono::seconds _duration_seconds{};
     std::string _duration_text{};
     std::function<void()> _on_update{};
 

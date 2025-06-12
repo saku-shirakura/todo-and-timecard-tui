@@ -507,9 +507,9 @@ namespace core::db {
 
         // データが正常に取得できているなら、その値を返す。
         // レコードの存在確認
-        if (const auto raw_table = tmp_table.getRawTable(); raw_table.size() > 0) {
+        if (const auto raw_table = tmp_table.getRawTable(); !raw_table.empty()) {
             // 列の存在確認
-            if (const auto front = raw_table.front(); front.contains("task_count")) {
+            if (const auto& front = raw_table.front(); front.contains("task_count")) {
                 // 型チェック
                 if (auto [type, value] = front.at("task_count"); type == ColType::T_INTEGER) {
                     return {0, std::get<long long>(value)};
