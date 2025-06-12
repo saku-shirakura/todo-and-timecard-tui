@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 /**
- * @file TaskListView.h
+ * @file MainPage.h
  * @date 25/05/08
  * @brief ファイルの説明
  * @details ファイルの詳細
@@ -32,9 +32,12 @@
 #ifndef TASKLISTVIEW_H
 #define TASKLISTVIEW_H
 #include <ftxui/component/component_base.hpp>
+#include "../../core/DBManager.h"
+#include "../../utilities/DurationTimer.h"
 
-#include "../core/DBManager.h"
-#include "../utilities/DurationTimer.h"
+namespace core::db {
+    class TaskTable;
+}
 
 namespace components {
     class TaskDetailBase;
@@ -167,9 +170,9 @@ namespace components {
         ftxui::Box _task_list_box;
     };
 
-    class ActiveTask final : public ftxui::ComponentBase {
+    class ActiveTaskBase final : public ftxui::ComponentBase {
     public:
-        explicit ActiveTask(const std::function<void()>& on_jump_button_click_);
+        explicit ActiveTaskBase(const std::function<void()>& on_jump_button_click_);
 
         ftxui::Element OnRender() override;
 
@@ -232,7 +235,7 @@ namespace components {
         [[nodiscard]] bool _isCurrentTaskActivated() const;
 
         TaskListViewBase* _tasklist_view_base;
-        std::shared_ptr<ActiveTask> _active_task;
+        std::shared_ptr<ActiveTaskBase> _active_task;
         ftxui::Component _task_name_input;
         ftxui::Component _task_status_toggle;
         ftxui::Component _task_detail_input;
