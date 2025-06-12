@@ -32,6 +32,14 @@ namespace core {
 
     void TodoAndTimeCardApp::updateScreen() { _screen.PostEvent(ftxui::Event::Custom); }
 
+    bool TodoAndTimeCardApp::openWindow(ftxui::Component component_)
+    {
+    }
+
+    bool TodoAndTimeCardApp::deleteWindow(size_t id)
+    {
+    }
+
     ftxui::ScreenInteractive TodoAndTimeCardApp::_screen{ftxui::ScreenInteractive::TerminalOutput()};
     std::mutex TodoAndTimeCardApp::_screen_mutex;
 } // core

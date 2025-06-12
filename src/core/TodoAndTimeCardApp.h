@@ -42,6 +42,9 @@ namespace core {
 
         static void updateScreen();
 
+        static bool openWindow(ftxui::Component component_);
+        static bool deleteWindow(size_t id);
+
     private:
         static std::mutex _screen_mutex;
         static ftxui::ScreenInteractive _screen;

@@ -34,7 +34,7 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 
-#include "../components/MainPage/MainPage.h"
+#include "../components/TodoListPageComponents/TodoListPageComponents.h"
 #include "../core/DBManager.h"
 
 namespace pages {
