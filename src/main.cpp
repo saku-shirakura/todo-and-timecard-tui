@@ -27,6 +27,13 @@
 #include "core/Logger.h"
 #include "core/TodoAndTimeCardApp.h"
 
+class ApplicationStartEndLogger {
+public:
+    ApplicationStartEndLogger() { Logger::info("start application.", "main"); }
+
+    ~ApplicationStartEndLogger() { Logger::info("finish application.", "main"); }
+};
+
 void startup()
 {
 #ifndef NDEBUG
@@ -39,9 +46,8 @@ void startup()
     Logger::log_level = Logger::LogLevel::INFO;
 #endif
     Logger::initialize();
-    Logger::info("start application.", "main");
+    ApplicationStartEndLogger logger;
     core::TodoAndTimeCardApp::execute();
-    Logger::info("finish application.", "main");
 }
 
 bool executeOption(std::vector<std::string> args)

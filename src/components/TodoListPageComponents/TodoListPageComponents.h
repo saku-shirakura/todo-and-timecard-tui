@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 /**
- * @file MainPage.h
+ * @file TodoListPageComponents.h
  * @date 25/05/08
  * @brief ファイルの説明
  * @details ファイルの詳細
@@ -93,7 +93,7 @@ namespace components {
 
         std::string getParentName();
 
-        long long getParentId() const;
+        [[nodiscard]] long long getParentId() const;
 
         [[nodiscard]] long long getTaskCount() const;
 
@@ -184,7 +184,7 @@ namespace components {
 
         const std::string& getTimerText();
 
-        std::chrono::seconds getSeconds() const;
+        [[nodiscard]] std::chrono::seconds getSeconds() const;
 
         [[nodiscard]] bool isActivated() const;
 
