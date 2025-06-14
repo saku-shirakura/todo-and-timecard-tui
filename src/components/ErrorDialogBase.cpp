@@ -20,36 +20,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "Console.h"
+#include "ErrorDialogBase.h"
 
-namespace components {
-    class ConsoleBase final : public ftxui::ComponentBase {
-    public:
-        explicit ConsoleBase(std::shared_ptr<ConsoleData> data_): _data(std::move(data_))
-        {
-            auto console = ftxui::Renderer([&] { return ftxui::text(_data->getText()); });
-            Add(std::move(console));
-        }
+components::ErrorDialogBase::ErrorDialogBase(std::function<void()> on_close_): _on_close(on_close_
+        ? std::move(on_close_)
+        : [] {
+        }) { Add(_close_button); }
 
-        ftxui::Element OnRender() override
-        {
-            const ftxui::Element console_view = Render();
-            return console_view;
-        }
+void components::ErrorDialogBase::setError(const std::string& msg_) { _error = msg_; }
 
-    private:
-        std::shared_ptr<ConsoleData> _data;
-    };
+ftxui::Element components::ErrorDialogBase::OnRender()
+{
+    return ftxui::vbox(ftxui::paragraph(_error),
+                       ftxui::filler(),
+                       _close_button->Render()
+                       | ftxui::center)
+        | ftxui::border
+        | size(ftxui::HEIGHT, ftxui::EQUAL, 10) | size(ftxui::WIDTH, ftxui::EQUAL, 30);
+}
 
-    void ConsoleData::printConsole(const std::string& str_)
-    {
-        _console_text = "Console: " + str_;
-    }
-
-    std::string ConsoleData::getText() { return _console_text; }
-
-    ftxui::Component Console(std::shared_ptr<ConsoleData> console_data_)
-    {
-        return ftxui::Make<ConsoleBase>(std::move(console_data_));
-    }
-} // components
+std::shared_ptr<components::ErrorDialogBase> components::ErrorDialog(std::function<void()> on_close_)
+{
+    return std::make_shared<ErrorDialogBase>(on_close_);
+}

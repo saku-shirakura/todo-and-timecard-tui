@@ -31,26 +31,21 @@
 
 #ifndef TODOLISTPAGE_H
 #define TODOLISTPAGE_H
-#include <stack>
 #include <string>
-#include <vector>
 
 #include "ftxui/component/screen_interactive.hpp"
-#include "../components/Console.h"
-#include "../core/DBManager.h"
+#include "../components/ErrorDialogBase.h"
 
 namespace pages {
     class TodoListPage final {
     public:
         TodoListPage();
 
-        ftxui::Component getComponent() const;
+        [[nodiscard]] ftxui::Component getComponent() const;
 
     private:
         ftxui::Component _page_container;
-        std::shared_ptr<components::ConsoleData> _console_data{new components::ConsoleData};
         ftxui::Component _task_list_view;
-        ftxui::Component _console;
     };
 } // pages
 

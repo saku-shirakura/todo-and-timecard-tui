@@ -21,31 +21,34 @@
 // SOFTWARE.
 
 /**
- * @file Console.h
- * @date 25/05/08
+ * @file ErrorDialogBase.h
+ * @date 25/06/14
  * @brief ファイルの説明
  * @details ファイルの詳細
  * @author saku shirakura (saku@sakushira.com)
  */
 
 
-#ifndef CONSOLE_H
-#define CONSOLE_H
-#include "ftxui/component/component.hpp"
-#include "ftxui/component/event.hpp"
+#ifndef ERRORDIALOG_H
+#define ERRORDIALOG_H
+#include <ftxui/component/component.hpp>
 
 namespace components {
-    class ConsoleData final {
+    class ErrorDialogBase final : public ftxui::ComponentBase {
     public:
-        void printConsole(const std::string& str_);
+        explicit ErrorDialogBase(std::function<void()> on_close_);
 
-        std::string getText();
+        void setError(const std::string& msg_);
+
+        ftxui::Element OnRender() override;
 
     private:
-        std::string _console_text{"Console: Hello!"};
+        ftxui::Component _close_button{ftxui::Button("close", [&] { _on_close(); }, ftxui::ButtonOption::Ascii())};
+        std::function<void()> _on_close;
+        std::string _error;
     };
 
-    ftxui::Component Console(std::shared_ptr<ConsoleData> console_data_);
-} // components
+    std::shared_ptr<ErrorDialogBase> ErrorDialog(std::function<void()> on_close_);
+}
 
-#endif //CONSOLE_H
+#endif //ERRORDIALOG_H

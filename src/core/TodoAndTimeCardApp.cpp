@@ -22,16 +22,28 @@
 
 #include "TodoAndTimeCardApp.h"
 
+#include "../page/PageManager.h"
+
 namespace core {
     void TodoAndTimeCardApp::execute()
     {
         std::lock_guard lock(_screen_mutex);
-        const pages::TodoListPage todo{};
-        _screen.Loop(todo.getComponent());
+        const pages::PageManager page{};
+        _screen.Loop(page.getComponent() | ftxui::Modal(_error_dialog, &_show_error_dialog));
     }
 
     void TodoAndTimeCardApp::updateScreen() { _screen.PostEvent(ftxui::Event::Custom); }
 
+    void TodoAndTimeCardApp::setError(const std::string& msg) { _error_dialog->setError(msg); }
+
+    void TodoAndTimeCardApp::show() { _show_error_dialog = true; }
+
+    void TodoAndTimeCardApp::close() { _show_error_dialog = false; }
+
     ftxui::ScreenInteractive TodoAndTimeCardApp::_screen{ftxui::ScreenInteractive::TerminalOutput()};
     std::mutex TodoAndTimeCardApp::_screen_mutex;
+    std::shared_ptr<components::ErrorDialogBase> TodoAndTimeCardApp::_error_dialog{
+        components::ErrorDialog([] { _show_error_dialog = false; })
+    };
+    bool TodoAndTimeCardApp::_show_error_dialog{false};
 } // core

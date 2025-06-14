@@ -42,9 +42,17 @@ namespace core {
 
         static void updateScreen();
 
+        static void setError(const std::string& msg);
+
+        static void show();
+
+        static void close();
+
     private:
         static std::mutex _screen_mutex;
         static ftxui::ScreenInteractive _screen;
+        static std::shared_ptr<components::ErrorDialogBase> _error_dialog;
+        static bool _show_error_dialog;
     };
 } // core
 

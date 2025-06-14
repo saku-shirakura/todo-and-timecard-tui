@@ -36,29 +36,22 @@
 
 #include "../components/TodoListPageComponents/TodoListPageComponents.h"
 #include "../core/DBManager.h"
+#include "../core/TodoAndTimeCardApp.h"
 
 namespace pages {
     TodoListPage::TodoListPage()
     {
         _page_container = ftxui::Container::Vertical({});
         _task_list_view = components::TaskListView([&](const std::string& msg) {
-            _console_data->printConsole(msg);
+            core::TodoAndTimeCardApp::setError(msg);
+            core::TodoAndTimeCardApp::show();
         });
 
-        _console = components::Console(_console_data);
-
         _page_container->Add(_task_list_view);
-        _page_container->Add(_console);
     }
 
     ftxui::Component TodoListPage::getComponent() const
     {
-        return Renderer(_page_container, [&] {
-            return vbox(
-                _task_list_view->Render(),
-                ftxui::separator(),
-                _console->Render()
-            ) | size(ftxui::HEIGHT, ftxui::EQUAL, 30) | size(ftxui::WIDTH, ftxui::EQUAL, 120);
-        });
+        return Renderer(_page_container, [&] { return _task_list_view->Render(); });
     }
 } // pages
