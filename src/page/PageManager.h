@@ -1,0 +1,67 @@
+// MIT License
+//
+// Copyright (c) 2025 Saku Shirakura <saku@sakushira.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/**
+ * @file PageManager.h
+ * @date 25/06/14
+ * @brief ファイルの説明
+ * @details ファイルの詳細
+ * @author saku shirakura (saku@sakushira.com)
+ */
+
+
+#ifndef PAGEMANAGER_H
+#define PAGEMANAGER_H
+#include <ftxui/component/component.hpp>
+
+#include "SettingsPage.h"
+#include "TaskWorktimeDetailsPage.h"
+#include "TodoListPage.h"
+#include "../decorator/PageDecorator.h"
+
+namespace pages {
+    /**
+     * @brief ここにクラスの説明
+     * @details ここにクラスの詳細な説明
+     * @since
+     */
+    class PageManager final {
+    public:
+        PageManager();
+
+        ftxui::Component getComponent() const;
+
+    private:
+        ftxui::Component _container{ftxui::Container::Vertical({})};
+        ftxui::Component _page_container{ftxui::Container::Tab({}, &_selected_page)};
+        ftxui::Component _tab_switcher{ftxui::Toggle(&_tab_names, &_selected_page)};
+
+        std::vector<std::string> _tab_names;
+
+        int _selected_page{0};
+
+        TodoListPage _todo_list_page;
+        TaskWorktimeDetailsPage _task_worktime_details_page;
+        SettingsPage _settings_page;
+    };
+}
+#endif //PAGEMANAGER_H
