@@ -26,8 +26,6 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/resource.h
         src/core/Logger.cpp
         src/core/Logger.h
-        src/components/Console.cpp
-        src/components/Console.h
         src/components/TodoListPageComponents/TodoListPageComponents.cpp
         src/components/TodoListPageComponents/TodoListPageComponents.h
         src/components/custom_menu_entry.cpp
@@ -38,6 +36,16 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/components/TodoListPageComponents/TaskListViewBase.cpp
         src/components/TodoListPageComponents/ActiveTaskBase.cpp
         src/components/TodoListPageComponents/TaskDetailBase.cpp
+        src/page/TaskWorktimeDetailsPage.cpp
+        src/page/TaskWorktimeDetailsPage.h
+        src/decorator/PageDecorator.cpp
+        src/decorator/PageDecorator.h
+        src/page/PageManager.cpp
+        src/page/PageManager.h
+        src/components/ErrorDialogBase.cpp
+        src/components/ErrorDialogBase.h
+        src/page/SettingsPage.cpp
+        src/page/SettingsPage.h
 )
 
 set_target_properties(todo-and-timecard-tui PROPERTIES
