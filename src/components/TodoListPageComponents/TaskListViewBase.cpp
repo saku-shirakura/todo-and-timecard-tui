@@ -104,7 +104,7 @@ namespace components {
                 ),
                 ftxui::separator(),
                 _task_detail->Render()
-            ) | ftxui::border;
+            );
     }
 
     ftxui::Component TaskListViewBase::HistoryBackButton()
