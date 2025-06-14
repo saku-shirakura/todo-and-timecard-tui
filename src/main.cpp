@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "resource.h"
+#include "core/DBManager.h"
 #include "core/Logger.h"
 #include "core/TodoAndTimeCardApp.h"
 
