@@ -394,6 +394,14 @@ namespace core::db {
         Not_Planned = 4,
     };
 
+    /**
+     * @brief 明示的に、マッパーを使用しない場合のためのテーブル
+     */
+    class NoMappingTable final : public DatabaseTable {
+    public:
+        NoMappingTable();
+    };
+
     class Task {
     public:
         const long long id;

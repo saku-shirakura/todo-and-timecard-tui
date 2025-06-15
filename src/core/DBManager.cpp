@@ -418,6 +418,10 @@ namespace core::db {
     {
     }
 
+    NoMappingTable::NoMappingTable(): DatabaseTable({}, {})
+    {
+    }
+
 
     Task::Task(): id(-1), parent_id(-1), status_id(0), created_at(-1), updated_at(-1)
     {
