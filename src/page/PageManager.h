@@ -59,9 +59,9 @@ namespace pages {
 
         int _selected_page{0};
 
-        TodoListPage _todo_list_page;
-        TaskWorktimeDetailsPage _task_worktime_details_page;
-        SettingsPage _settings_page;
+        TodoListPage _todo_list_page{};
+        TaskWorktimeDetailsPage _task_worktime_details_page{};
+        SettingsPage _settings_page{};
     };
 }
 #endif //PAGEMANAGER_H

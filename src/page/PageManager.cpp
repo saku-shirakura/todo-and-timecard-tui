@@ -44,10 +44,10 @@ namespace pages {
     {
         return Renderer(_container, [&] {
             return vbox(
-                _page_container->Render() | ftxui::border,
+                _page_container->Render() | ftxui::border | decorator::pageDecorator,
                 ftxui::separator(),
                 _tab_switcher->Render()
-            ) | decorator::pageDecorator;
+            );
         });
     }
 }
