@@ -25,13 +25,12 @@
 #include <format>
 #include <sqlite3.h>
 
+#include "DBManager.h"
+
 constexpr size_t rotate_count = 5;
 constexpr size_t max_log_size = 1 * 1024 * 1024;
 
-void Logger::initialize()
-{
-    std::call_once(_initialized, _initialize);
-}
+void Logger::initialize() { std::call_once(_initialized, _initialize); }
 
 
 void Logger::log(const std::string& msg_, const std::string& log_level_, const std::string& reporter_) noexcept
@@ -93,6 +92,19 @@ void Logger::setLogFilePath(const std::string& log_file_path_)
     _log_file_path = log_file_path_;
 }
 
+void Logger::loadFromSettings()
+{
+    core::db::SettingTable tbl{};
+    tbl.selectRecords("setting_key = 'LogLevel'", {});
+    if (tbl.getKeys().empty()) return;
+    const std::string level = tbl.getTable().at(tbl.getKeys().front()).value;
+    if (level == "debug") log_level = LogLevel::DEBUG;
+    else if (level == "info") log_level = LogLevel::INFO;
+    else if (level == "warning") log_level = LogLevel::WARNING;
+    else if (level == "error") log_level = LogLevel::ERROR;
+    else if (level == "critical") log_level = LogLevel::CRITICAL;
+}
+
 Logger::LogLevel Logger::log_level = LogLevel::INFO;
 
 std::unordered_map<std::string, Logger::LogLevel> Logger::_log_level_map{
@@ -130,7 +142,8 @@ bool Logger::_ensureOpenLogFile()
 
 std::filesystem::path Logger::_getRotatePath(const size_t rotateNumber)
 {
-    return _log_file_path.parent_path() / (_log_file_path.stem().string() + "." + std::to_string(rotateNumber) +  _log_file_path.extension().string());
+    return _log_file_path.parent_path() / (_log_file_path.stem().string() + "." + std::to_string(rotateNumber) +
+        _log_file_path.extension().string());
 }
 
 void Logger::_initialize() { sqlite3_config(SQLITE_CONFIG_LOG, sqliteLoggingCallback, nullptr); }

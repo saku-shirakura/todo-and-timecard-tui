@@ -87,6 +87,8 @@ public:
 
     static void setLogFilePath(const std::string& log_file_path_);
 
+    static void loadFromSettings();
+
     static LogLevel log_level;
 private:
     static std::unordered_map<std::string, LogLevel> _log_level_map;

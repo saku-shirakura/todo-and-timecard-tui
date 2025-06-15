@@ -42,10 +42,8 @@ void startup()
     if (!core::db::DBManager::setDBFile("dev.sqlite")) {
         Logger::error("Failed to change database file path.", "main");
     }
-    Logger::log_level = Logger::LogLevel::DEBUG;
-#else
-    Logger::log_level = Logger::LogLevel::INFO;
 #endif
+    Logger::loadFromSettings();
     Logger::initialize();
     ApplicationStartEndLogger logger;
     core::TodoAndTimeCardApp::execute();
