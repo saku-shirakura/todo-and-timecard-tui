@@ -46,6 +46,8 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/components/ErrorDialogBase.h
         src/page/SettingsPage.cpp
         src/page/SettingsPage.h
+        src/core/DBMigrator.cpp
+        src/core/DBMigrator.h
 )
 
 set_target_properties(todo-and-timecard-tui PROPERTIES

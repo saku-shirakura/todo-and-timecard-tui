@@ -568,6 +568,74 @@ namespace core::db {
         std::unordered_map<long long, Schedule> _table;
         std::vector<long long> _keys;
     };
+
+    class Migrate {
+    public:
+        const long long id;
+        const long long applied;
+        const long long created_at;
+        const long long updated_at;
+
+        friend class MigrateTable;
+
+    private:
+        Migrate(
+            long long id_,
+            long long applied_,
+            long long created_at_,
+            long long updated_at_
+        );
+    };
+
+    class MigrateTable final : public DatabaseTable {
+    public:
+        MigrateTable();
+
+        const std::unordered_map<long long, Migrate>& getTable() const;
+
+        const std::vector<long long>& getKeys() const;
+
+    private:
+        void _mapper() override;
+
+        std::unordered_map<long long, Migrate> _table;
+        std::vector<long long> _keys;
+    };
+
+    class Setting final {
+    public:
+        const long long id;
+        const std::string setting_key;
+        const std::string value;
+        const long long created_at;
+        const long long updated_at;
+
+        friend class SettingTable;
+
+    private:
+        Setting(
+            long long id_,
+            const std::string& setting_key_,
+            const std::string& value_,
+            long long created_at_,
+            long long updated_at_
+        );
+    };
+
+    class SettingTable final : public DatabaseTable {
+    public:
+        SettingTable();
+
+        const std::unordered_map<long long, Setting>& getTable() const;
+
+        const std::vector<long long>& getKeys() const;
+
+    private:
+        void _mapper() override;
+
+        std::unordered_map<long long, Setting> _table;
+        std::vector<long long> _keys;
+    };
 } // core
 
 #endif //DBMANAGER_H

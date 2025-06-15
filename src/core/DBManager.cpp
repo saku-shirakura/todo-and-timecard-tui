@@ -33,6 +33,7 @@
 #include <memory>
 #include <regex>
 
+#include "DBMigrator.h"
 #include "Logger.h"
 #include "../resource.h"
 
@@ -114,6 +115,7 @@ namespace core::db {
         if (exec_init) {
             if (const int initialize_err = _manager->_initializeDB(); initialize_err != 0) { return initialize_err; }
         }
+        DBMigrator::migrate();
         return 0;
     }
 
@@ -658,10 +660,11 @@ namespace core::db {
     {
         TaskTable tbl;
         if (tbl.usePlaceholderUniSql(
-                std::string(F_IS_TASK_SIBLINGS_SQL, SIZE_IS_TASK_SIBLINGS_SQL),
+            std::string(F_IS_TASK_SIBLINGS_SQL, SIZE_IS_TASK_SIBLINGS_SQL),
             {
-            {ColType::T_INTEGER, sibling_task_id}, {ColType::T_INTEGER, parent_id}
-            }) != 0) return false;
+                {ColType::T_INTEGER, sibling_task_id}, {ColType::T_INTEGER, parent_id}
+            }) != 0)
+            return false;
         if (tbl.getRawTable().empty()) return false;
         return getLongLong(tbl.getRawTable().front().at("result")) == 1;
     }
@@ -742,6 +745,88 @@ namespace core::db {
         }
     }
 
+    Migrate::Migrate(
+        const long long id_,
+        const long long applied_,
+        const long long created_at_,
+        const long long updated_at_): id(id_), applied(applied_), created_at(created_at_), updated_at(updated_at_)
+    {
+    }
+
+    MigrateTable::MigrateTable(): DatabaseTable({
+                                                    "id",
+                                                    "applied",
+                                                    "created_at",
+                                                    "updated_at"
+                                                },
+                                                "migrate")
+    {
+    }
+
+    const std::unordered_map<long long, Migrate>& MigrateTable::getTable() const { return _table; }
+
+    const std::vector<long long>& MigrateTable::getKeys() const { return _keys; }
+
+    void MigrateTable::_mapper()
+    {
+        _keys.clear();
+        _table.clear();
+        for (auto i : _data) {
+            _keys.emplace_back(getLongLong(i.at("id")));
+            _table.try_emplace(
+                getLongLong(i.at("id")),
+                Migrate({
+                    getLongLong(i.at("id")),
+                    getLongLong(i.at("applied")),
+                    getLongLong(i.at("created_at")),
+                    getLongLong(i.at("updated_at"))
+                })
+            );
+        }
+    }
+
+    Setting::Setting(const long long id_,
+                     const std::string& setting_key_,
+                     const std::string& value_,
+                     const long long created_at_,
+                     const long long updated_at_): id(id_), setting_key(setting_key_), value(value_),
+                                                   created_at(created_at_),
+                                                   updated_at(updated_at_)
+    {
+    }
+
+    SettingTable::SettingTable(): DatabaseTable({
+                                                    "id",
+                                                    "setting_key",
+                                                    "value",
+                                                    "created_at",
+                                                    "updated_at"
+                                                }, "settings")
+    {
+    }
+
+    const std::unordered_map<long long, Setting>& SettingTable::getTable() const { return _table; }
+
+    const std::vector<long long>& SettingTable::getKeys() const { return _keys; }
+
+    void SettingTable::_mapper()
+    {
+        _keys.clear();
+        _table.clear();
+        for (auto i : _data) {
+            _keys.emplace_back(getLongLong(i.at("id")));
+            _table.try_emplace(
+                getLongLong(i.at("id")),
+                Setting({
+                    getLongLong(i.at("id")),
+                    getString(i.at("setting_key")),
+                    getString(i.at("value")),
+                    getLongLong(i.at("created_at")),
+                    getLongLong(i.at("updated_at"))
+                })
+            );
+        }
+    }
 
     WorktimeTable::WorktimeTable(): DatabaseTable({
                                                       "id",
