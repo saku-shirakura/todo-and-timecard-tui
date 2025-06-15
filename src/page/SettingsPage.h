@@ -31,7 +31,7 @@
 
 #ifndef SETTINGSPAGE_H
 #define SETTINGSPAGE_H
-#include "../../cmake-build-release/_deps/ftxui-src/include/ftxui/component/component.hpp"
+#include <ftxui/component/component.hpp>
 #include "../components/TodoListPageComponents/TodoListPageComponents.h"
 
 namespace pages {
@@ -42,7 +42,33 @@ namespace pages {
      */
     class SettingsPage final {
     public:
-        ftxui::Component getComponent();
+        SettingsPage();
+
+        ftxui::Component getComponent() const;
+
+    private:
+        class SettingEntryImpl final : public ftxui::ComponentBase {
+        public:
+            static std::shared_ptr<SettingEntryImpl> create(std::string setting_key_,
+                                                            std::vector<std::string> menu_entry_);
+
+            ftxui::Element OnRender() override;
+
+            void setOnChange(const std::function<void(std::string prev_value_, std::string value_)>& handler_);
+
+            SettingEntryImpl(std::string setting_key_, std::vector<std::string> menu_entry_);
+
+        private:
+            ftxui::Component _component;
+            std::string _setting_key;
+            std::string _setting_value{};
+            int _selection_selected{};
+            std::vector<std::string> _selections;
+            std::function<void(std::string prev_value_, std::string value_)> _on_change;
+        };
+
+        ftxui::Component _container;
+        std::vector<std::shared_ptr<SettingEntryImpl>> _entries{};
     };
 } // pages
 

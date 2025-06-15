@@ -34,7 +34,6 @@ END;
 
 INSERT INTO settings(setting_key, value)
 VALUES ('Timezone', '+0000'),
-       ('Language', 'en'),
        ('LogLevel', 'info');
 
 INSERT INTO migrate (applied)
