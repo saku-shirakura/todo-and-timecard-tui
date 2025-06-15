@@ -24,14 +24,14 @@
 
 void core::db::DBMigrator::migrate()
 {
-    MigrateTable tbl{};
+    NoMappingTable tbl{};
     tbl.usePlaceholderUniSql("SELECT 1 FROM pragma_table_info('migrate') LIMIT 1;");
     if (tbl.getRawTable().empty()) { DBManager::execute(std::string(F_MIG_V1_SQL, SIZE_MIG_V1_SQL)); }
 
     tbl.usePlaceholderUniSql("SELECT 1 AS id, MAX(applied) AS applied FROM migrate;");
     long long latest_applied = 0;
-    if (!tbl.getKeys().empty())
-        latest_applied = tbl.getTable().at(1).applied;
+    if (!tbl.getRawTable().empty())
+        latest_applied = getLongLong(tbl.getRawTable().front().at("applied"));
     while (latest_applied < stoll(std::string(F_MIGRATE_LATEST_, SIZE_MIGRATE_LATEST_))) {
         DBManager::execute(_migration_sql.at(latest_applied));
         latest_applied++;
