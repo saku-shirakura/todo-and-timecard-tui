@@ -320,6 +320,14 @@ namespace core::db {
         int usePlaceholderUniSql(const std::string& sql_, std::vector<ColValue> placeholder_value_ = {});
 
         /**
+         * @brief FROM句以降のsqlを指定し実行します。この関数では_mapper()が呼び出されます。JOINやUNIONを扱うためのものです。
+         * @param sql_ FROM句以降の構文 (例: SELECT XXX FROM XXX WHERE XXX なら、WHERE XXXのように指定する。)
+         * @note 残りの説明は、usePlaceholderUniSql(sql_, placeholder_value_, sql_remaining_)を参照してください。
+         * @return
+         */
+        int columnTableConfiguredSql(const std::string& sql_, std::vector<ColValue> placeholder_value_ = {});
+
+        /**
          * @brief 全てのレコードを取得します。
          * @return 正常終了時は0を返します。0以外を返す場合、`getPrefixedErrorCode(sqlite_error, error_pos)`によって求められたエラーコードです。
          */

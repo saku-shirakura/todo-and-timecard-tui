@@ -350,6 +350,20 @@ namespace core::db {
         return DBManager::usePlaceholderUniSql(sql_, _data, _binder, &placeholder_value_, sql_remaining);
     }
 
+    int DatabaseTable::columnTableConfiguredSql(const std::string& sql_, std::vector<ColValue> placeholder_value_)
+    {
+        std::string columns, unused_string;
+        for (const std::string& col : _column_names) {
+            if (!columns.empty())
+                columns += ", ";
+            columns += col;
+        }
+        const int ret_val = usePlaceholderUniSql(std::format("SELECT {} FROM {} {}", columns, _table_name, sql_),
+                                                 std::move(placeholder_value_), unused_string);
+        _mapper();
+        return ret_val;
+    }
+
     int DatabaseTable::selectRecords() { return selectRecords("", {}); }
 
     int DatabaseTable::selectRecords(const std::string& where_clause_, const std::vector<ColValue>& placeholder_value_,
