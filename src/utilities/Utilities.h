@@ -92,6 +92,8 @@ namespace util {
      * @returns そうでないなら、01Y02M03D00h01m02sのような時間を表すテキスト
      */
     std::string timeTextFromSeconds(std::chrono::seconds seconds_, bool ellipsis_ = false);
+
+    long long fitInt(long long x, long long max, long long min);
 }
 
 #endif //UTILITIES_H

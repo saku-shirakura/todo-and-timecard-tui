@@ -159,3 +159,10 @@ std::string util::timeTextFromSeconds(const std::chrono::seconds seconds_, bool 
     }
     return std::format("{:02}m{:02}s", minutes, seconds);
 }
+
+long long util::fitInt(const long long x, const long long max, const long long min)
+{
+    if (x > max) return max;
+    if (x < min) return min;
+    return x;
+}
