@@ -849,7 +849,6 @@ namespace core::db {
     WorktimeTable::WorktimeTable(): DatabaseTable({
                                                       "id",
                                                       "task_id",
-                                                      "memo",
                                                       "starting_time",
                                                       "finishing_time",
                                                       "created_at",
