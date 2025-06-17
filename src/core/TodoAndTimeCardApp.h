@@ -31,6 +31,7 @@
 
 #ifndef TODOANDTIMECARDAPP_H
 #define TODOANDTIMECARDAPP_H
+#include "../components/ErrorDialogBase.h"
 #include "../page/TodoListPage.h"
 
 namespace core {
