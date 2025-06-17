@@ -31,7 +31,10 @@
 
 #ifndef SETTINGSPAGE_H
 #define SETTINGSPAGE_H
+#include <unordered_map>
 #include <ftxui/component/component.hpp>
+
+#include "Page.h"
 #include "../components/TodoListPageComponents/TodoListPageComponents.h"
 
 namespace pages {
@@ -40,11 +43,13 @@ namespace pages {
      * @details ここにクラスの詳細な説明
      * @since
      */
-    class SettingsPage final {
+    class SettingsPage final : public Page {
     public:
         SettingsPage();
 
         ftxui::Component getComponent() const;
+
+        static void registerEventOnChange(const std::string& trigger_setting_key_, std::function<void()> function_);
 
     private:
         class SettingEntryImpl final : public ftxui::ComponentBase {
@@ -69,6 +74,7 @@ namespace pages {
 
         ftxui::Component _container;
         std::vector<std::shared_ptr<SettingEntryImpl>> _entries{};
+        static std::unordered_map<std::string, std::vector<std::function<void()>>> _event_setting_changed;
     };
 } // pages
 

@@ -29,7 +29,7 @@
 namespace pages {
     SettingsPage::SettingsPage()
     {
-        _entries.push_back(SettingEntryImpl::create("Timezone", {
+        _entries.push_back(SettingEntryImpl::create("timezone", {
                                                         "-1200",
                                                         "-1100",
                                                         "-1000",
@@ -58,7 +58,7 @@ namespace pages {
                                                         "+1300",
                                                         "+1400",
                                                     }));
-        _entries.push_back(SettingEntryImpl::create("LogLevel", {
+        _entries.push_back(SettingEntryImpl::create("log level", {
                                                         "debug",
                                                         "info",
                                                         "warning",
@@ -79,6 +79,15 @@ namespace pages {
                 ftxui::frame |
                 ftxui::vscroll_indicator;
         });
+    }
+
+    void SettingsPage::registerEventOnChange(const std::string& trigger_setting_key_, std::function<void()> function_)
+    {
+        if (!function_) return;
+        if (!_event_setting_changed.contains(trigger_setting_key_)) {
+            _event_setting_changed.try_emplace(trigger_setting_key_, std::vector{function_});
+        }
+        else { _event_setting_changed.at(trigger_setting_key_).emplace_back(function_); }
     }
 
     std::shared_ptr<SettingsPage::SettingEntryImpl> SettingsPage::SettingEntryImpl::create(
@@ -131,6 +140,9 @@ namespace pages {
                                              }
                                          });
                 if (_on_change) _on_change(prev, _setting_value);
+                if (_event_setting_changed.contains(_setting_key)) {
+                    for (const auto event : _event_setting_changed.at(_setting_key)) { event(); }
+                }
             }
         };
         option.radiobox.entries = &_selections;
@@ -139,4 +151,6 @@ namespace pages {
         _component = ftxui::Dropdown(option);
         Add(_component);
     }
+
+    std::unordered_map<std::string, std::vector<std::function<void ()>>> SettingsPage::_event_setting_changed{};
 } // pages
