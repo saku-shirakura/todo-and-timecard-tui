@@ -95,7 +95,7 @@ void Logger::setLogFilePath(const std::string& log_file_path_)
 void Logger::loadFromSettings()
 {
     core::db::SettingTable tbl{};
-    tbl.selectRecords("setting_key = 'LogLevel'", {});
+    tbl.selectRecords("setting_key = 'log level'", {});
     if (tbl.getKeys().empty()) return;
     const std::string level = tbl.getTable().at(tbl.getKeys().front()).value;
     if (level == "debug") log_level = LogLevel::DEBUG;
