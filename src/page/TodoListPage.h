@@ -31,13 +31,12 @@
 
 #ifndef TODOLISTPAGE_H
 #define TODOLISTPAGE_H
-#include <string>
 
+#include "Page.h"
 #include "ftxui/component/screen_interactive.hpp"
-#include "../components/ErrorDialogBase.h"
 
 namespace pages {
-    class TodoListPage final {
+    class TodoListPage final : public Page {
     public:
         TodoListPage();
 
