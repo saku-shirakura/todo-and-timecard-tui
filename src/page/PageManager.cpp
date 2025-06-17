@@ -26,13 +26,21 @@ namespace pages {
     PageManager::PageManager()
     {
         // Register Page Titles
-        _tab_names.push_back("TodoList");
-        _tab_names.push_back("Worktime");
-        _tab_names.push_back("Settings");
+        _tab_names.emplace_back("TodoList");
+        _tab_names.emplace_back("Worktime");
+        _tab_names.emplace_back("Settings");
+
+        ftxui::MenuOption switcher_option = ftxui::MenuOption::Toggle();
+        switcher_option.on_change = [&] {
+            if (_tab_names.at(_selected_page) == "TodoList") _todo_list_page.onShowing();
+            else if (_tab_names.at(_selected_page) == "Worktime") _worktime_summary_page.onShowing();
+            else if (_tab_names.at(_selected_page) == "Settings") _settings_page.onShowing();
+        };
+        _tab_switcher = ftxui::Menu(&_tab_names, &_selected_page, switcher_option);
 
         // Register Pages
         _page_container->Add(_todo_list_page.getComponent());
-        _page_container->Add(_task_worktime_details_page.getComponent());
+        _page_container->Add(_worktime_summary_page.getComponent());
         _page_container->Add(_settings_page.getComponent());
 
         // Assemble main content.

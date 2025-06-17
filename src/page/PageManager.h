@@ -34,7 +34,7 @@
 #include <ftxui/component/component.hpp>
 
 #include "SettingsPage.h"
-#include "TaskWorktimeDetailsPage.h"
+#include "WorktimeSummaryPage.h"
 #include "TodoListPage.h"
 #include "../decorator/PageDecorator.h"
 
@@ -53,14 +53,14 @@ namespace pages {
     private:
         ftxui::Component _container{ftxui::Container::Vertical({})};
         ftxui::Component _page_container{ftxui::Container::Tab({}, &_selected_page)};
-        ftxui::Component _tab_switcher{ftxui::Toggle(&_tab_names, &_selected_page)};
+        ftxui::Component _tab_switcher{};
 
         std::vector<std::string> _tab_names;
 
         int _selected_page{0};
 
         TodoListPage _todo_list_page{};
-        TaskWorktimeDetailsPage _task_worktime_details_page{};
+        WorktimeSummaryPage _worktime_summary_page{};
         SettingsPage _settings_page{};
     };
 }
