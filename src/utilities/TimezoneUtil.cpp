@@ -41,7 +41,4 @@ long long util::tz::fetchDifferenceSeconds()
     return difference;
 }
 
-long long util::tz::addTimezoneValue(const long long _unix_epoch)
-{
-    return _unix_epoch + fetchDifferenceSeconds();
-}
+long long util::tz::addTimezoneValue(const long long _unix_epoch) { return _unix_epoch + fetchDifferenceSeconds(); }
