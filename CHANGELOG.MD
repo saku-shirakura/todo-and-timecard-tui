@@ -1,5 +1,12 @@
 # Chagne log
 
+## [v0.0.2-alpha] - 2025-06-17
+
+### Feature
+
+- daily gantt chart page: Daily work hours are displayed as a diagram.
+- settings page: Application settings.
+
 ## [v0.0.1-alpha] - 2025-05-16
 
 This version is the first release.
