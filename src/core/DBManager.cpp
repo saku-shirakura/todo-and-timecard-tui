@@ -804,10 +804,11 @@ namespace core::db {
     }
 
     Setting::Setting(const long long id_,
-                     const std::string& setting_key_,
-                     const std::string& value_,
+                     std::string setting_key_,
+                     std::string value_,
                      const long long created_at_,
-                     const long long updated_at_): id(id_), setting_key(setting_key_), value(value_),
+                     const long long updated_at_): id(id_), setting_key(std::move(setting_key_)),
+                                                   value(std::move(value_)),
                                                    created_at(created_at_),
                                                    updated_at(updated_at_)
     {
@@ -854,7 +855,7 @@ namespace core::db {
                                                       "created_at",
                                                       "updated_at"
                                                   },
-                                                  "worktime")
+                                                  "null_set_worktime")
     {
     }
 
@@ -892,13 +893,25 @@ namespace core::db {
                                           });
     }
 
-    int WorktimeTable::updateWorktime(long long id_, const std::string& memo_)
+    int WorktimeTable::updateWorktime(long long id_)
     {
         WorktimeTable table;
-        return table.usePlaceholderUniSql("UPDATE worktime SET memo=? WHERE id=?;", {
-                                              {ColType::T_TEXT, memo_},
+        return table.usePlaceholderUniSql("UPDATE worktime SET WHERE id=?;", {
                                               {ColType::T_INTEGER, id_}
                                           });
+    }
+
+    int WorktimeTable::selectWorktimeExistTaskFromPeriod(long long starting_at, long long finishing_at)
+    {
+        const int err = usePlaceholderUniSql(
+            std::string(F_GANTT_TASKS_FROM_DURATION_SQL, SIZE_GANTT_TASKS_FROM_DURATION_SQL),
+            {
+                {ColType::T_INTEGER, starting_at},
+                {ColType::T_INTEGER, finishing_at}
+            });
+        if (err != 0) return err;
+        _mapper();
+        return 0;
     }
 
     void WorktimeTable::_mapper()

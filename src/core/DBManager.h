@@ -540,7 +540,9 @@ namespace core::db {
 
         static int activateTask(long long task_id_);
 
-        static int updateWorktime(long long id_, const std::string& memo_);
+        static int updateWorktime(long long id_);
+
+        int selectWorktimeExistTaskFromPeriod(long long starting_at, long long finishing_at);
 
     private:
         void _mapper() override;
@@ -631,8 +633,8 @@ namespace core::db {
     private:
         Setting(
             long long id_,
-            const std::string& setting_key_,
-            const std::string& value_,
+            std::string setting_key_,
+            std::string value_,
             long long created_at_,
             long long updated_at_
         );
