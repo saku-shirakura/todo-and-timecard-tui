@@ -24,5 +24,5 @@
 
 ftxui::Element decorator::pageDecorator(const ftxui::Element& element_)
 {
-    return element_ | size(ftxui::HEIGHT, ftxui::EQUAL, 28) | size(ftxui::WIDTH, ftxui::EQUAL, 120);
+    return element_ | size(ftxui::HEIGHT, ftxui::EQUAL, 28) | size(ftxui::WIDTH, ftxui::EQUAL, 118);
 }
