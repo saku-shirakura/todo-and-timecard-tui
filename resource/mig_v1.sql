@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS migrate;
 DROP TABLE IF EXISTS settings;
-DROP VIEW IF EXISTS null_setted_worktime;
+DROP VIEW IF EXISTS null_set_worktime;
 
 CREATE TABLE migrate
 (
@@ -33,7 +33,7 @@ BEGIN
     UPDATE settings SET updated_at = (unixepoch(DATETIME('now'))) WHERE rowid == NEW.rowid;
 END;
 
-CREATE VIEW null_setted_worktime AS
+CREATE VIEW null_set_worktime AS
 SELECT id,
        task_id,
        starting_time,
