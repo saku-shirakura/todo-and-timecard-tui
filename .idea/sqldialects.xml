@@ -3,6 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/docs/taskFromPageNumber.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/change_to_only_one_task.sql" dialect="SQLite" />
+    <file url="file://$PROJECT_DIR$/resource/gantt_tasks_from_duration.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/initialize_db.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/is_task_siblings.sql" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/resource/mig_v1.sql" dialect="SQLite" />
