@@ -36,8 +36,8 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/components/TodoListPageComponents/TaskListViewBase.cpp
         src/components/TodoListPageComponents/ActiveTaskBase.cpp
         src/components/TodoListPageComponents/TaskDetailBase.cpp
-        src/page/TaskWorktimeDetailsPage.cpp
-        src/page/TaskWorktimeDetailsPage.h
+        src/page/WorktimeSummaryPage.cpp
+        src/page/WorktimeSummaryPage.h
         src/decorator/PageDecorator.cpp
         src/decorator/PageDecorator.h
         src/page/PageManager.cpp
@@ -48,6 +48,14 @@ add_executable(todo-and-timecard-tui src/main.cpp
         src/page/SettingsPage.h
         src/core/DBMigrator.cpp
         src/core/DBMigrator.h
+        src/elements/GanttChartLine.cpp
+        src/elements/GanttChartLine.h
+        src/components/GanttChartTimelineBase.cpp
+        src/components/GanttChartTimelineBase.h
+        src/utilities/TimezoneUtil.cpp
+        src/utilities/TimezoneUtil.h
+        src/page/Page.cpp
+        src/page/Page.h
 )
 
 set_target_properties(todo-and-timecard-tui PROPERTIES

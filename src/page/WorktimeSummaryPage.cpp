@@ -20,24 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "TaskWorktimeDetailsPage.h"
+#include "WorktimeSummaryPage.h"
+
+#include <memory>
+
+#include "../elements/GanttChartLine.h"
 #include <ftxui/dom/elements.hpp>
 
+#include "../components/GanttChartTimelineBase.h"
+#include "../decorator/PageDecorator.h"
+
 namespace pages {
-    TaskWorktimeDetailsPage::TaskWorktimeDetailsPage()
+    WorktimeSummaryPage::WorktimeSummaryPage()
     {
+        _gantt_chart = ftxui::Make<components::GanttChartTimelineBase>();
     }
 
-    ftxui::Component TaskWorktimeDetailsPage::getComponent() const
-    {
-        return ftxui::Renderer(
-            [this] { return vbox(ftxui::text("a")) | ftxui::xflex_grow | ftxui::yflex_grow; }
-        );
-    }
-
-    void TaskWorktimeDetailsPage::setTaskId(const long long task_id_) const { *_task_id = task_id_; }
-
-    long long TaskWorktimeDetailsPage::getTaskId() const { return *_task_id; }
-
-    std::shared_ptr<long long> TaskWorktimeDetailsPage::getPtrTaskId() { return _task_id; }
+    ftxui::Component WorktimeSummaryPage::getComponent() const { return _gantt_chart; }
+    void WorktimeSummaryPage::onShowing() { _gantt_chart->update(); }
 } // components

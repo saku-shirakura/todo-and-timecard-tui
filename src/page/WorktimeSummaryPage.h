@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 /**
- * @file TaskWorktimeDetails.h
+ * @file WorktimeSummaryPage.h
  * @date 25/06/13
  * @brief ファイルの説明
  * @details ファイルの詳細
@@ -33,26 +33,25 @@
 #define TASKWORKTIMEDETAILS_H
 #include <ftxui/component/component.hpp>
 
+#include "Page.h"
+#include "../components/GanttChartTimelineBase.h"
+
 namespace pages {
     /**
      * @brief ここにクラスの説明
      * @details ここにクラスの詳細な説明
      * @since
      */
-    class TaskWorktimeDetailsPage final {
+    class WorktimeSummaryPage final : public Page {
     public:
-        TaskWorktimeDetailsPage();
+        WorktimeSummaryPage();
 
         [[nodiscard]] ftxui::Component getComponent() const;
 
-        void setTaskId(long long task_id_) const;
-
-        long long getTaskId() const;
-
-        std::shared_ptr<long long> getPtrTaskId();
+        void onShowing() override;
 
     private:
-        std::shared_ptr<long long> _task_id{new long long()};
+        std::shared_ptr<components::GanttChartTimelineBase> _gantt_chart;
     };
 } // components
 
